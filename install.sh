@@ -18,7 +18,7 @@ install_if_not_exists zenity
 # Bundler
 if ! gem list | grep bundler &> /dev/null ; then
   echo 'Installing bundler...'
-  gem install bundler
+  sudo gem install bundler
 fi
 
 bundle install
