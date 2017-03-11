@@ -5,7 +5,7 @@
 * Sources for annotator and helpers for utils in `/lib` folder
 
 ## Utilities
-### Translated blast hits .csv -> non-translated .fgg converter
+### Translated blast hits .csv -> non-translated .gff converter
 
 It can translate `.csv` files with amino acid coordinates like this
 ```
