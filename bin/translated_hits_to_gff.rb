@@ -38,44 +38,6 @@ end
   end
 end
 
-def back_translate_coords!(hit, target: :query)
-  case target
-  when :query
-    seqid_key = :qseqid
-    start_key = :qstart
-    finish_key = :qend
-    len_key = :qlen
-  when :subject
-    seqid_key = :sseqid
-    start_key = :sstart
-    finish_key = :send
-    len_key = :slen
-  end
-
-  frame = hit.data[seqid_key].split('_')[-1].to_i
-  nlen = hit.data[seqid_key].match(/length_(?<len>\d+)/)[:len].to_i
-
-  start = hit.data[start_key]
-  finish = hit.data[finish_key]
-
-  transposed_frame = [4,5,6].include?(frame) ? frame - 3 : frame
-  new_start = 3*start+transposed_frame-3
-  new_finish = 3*finish+transposed_frame-1
-
-  if [4,5,6].include? frame
-    new_start, new_finish = detect_reversed_coords new_start, new_finish, nlen
-  end
-
-  hit.data[start_key] = new_start
-  hit.data[finish_key] = new_finish
-
-  hit
-end
-
-def detect_reversed_coords(start, finish, len)
-  [start, finish].map { |x| len+1-x }
-end
-
 input_file_path = params[:in] || select_file(subject: "translated blast hits")
 reader = BlastReader.new input_file_path
 
@@ -85,28 +47,21 @@ outfile_path ||= append_to_filename(reader.file.path, 'non_tranlated').gsub(/\.\
 gff_file = File.open outfile_path, 'w'
 gff_file.puts "##gff-version 3"
 
-seqid_key = case params[:target].to_sym
-            when :subject
-              :sseqid
-            when :query
-              :qseqid
-            end
-
 reader.each_hit do |hit|
-  back_translate_coords! hit, target: params[:target].to_sym
+  hit.back_translate_coords! params[:target]
+  gff = hit.to_gff params[:target]
 
-  frame = hit.data[seqid_key].split('_')[-1]
+  # additional gff processing
+  gff_array = gff.split("\t")
 
   case params[:mode].to_sym
   when :genome
-    hit.data[seqid_key].gsub!(/_\d+\z/, '')
+    gff_array[0].gsub!(/_\d+\z/, '')
   when :transcriptome
-    hit.data[seqid_key].gsub!(/_length_.+/, '')
+    gff_array[0].gsub!(/_length_.+/, '')
   end
 
-  gff = hit.to_gff(target: :subject, frame: frame.to_s)
-
-  gff_file.puts gff
+  gff_file.puts gff_array.join("\t")
 end
 
 puts "Finished"

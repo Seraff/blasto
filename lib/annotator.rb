@@ -2,24 +2,24 @@ require 'bio'
 require 'helpers'
 
 class Annotator
-  attr_accessor :genome
+  attr_accessor :genome, :hits_prepared
 
-  @@hits_prepared = false
+  def initialize(genome_path:, hits_path:, reads_path:)
+    @hits_prepared = false
 
-  def self.prepare_blast_hits
-    return true if @@hits_prepared
+    @genome_path = genome_path
+    @hits_path = hits_path
+    @reads_path = reads_path
 
-    ## take blast_hit file
-    ## split by contigs
-    ## save each contig to it's own file
-
-    ##
-    @@hits_prepared = true
+    @genome = Bio::FlatFile.open(Bio::FastaFormat, @genome_path)
   end
 
-  def initialize
-    file_name = select_file('genome contigs')
-    @genome = Bio::FlatFile.open(Bio::FastaFormat, file_name)
+  def prepare(target:, mode:)
+    preparer = HitsPreparer.new hits_path: @hits_path, target: target, mode: mode
+
+    if preparer.prepare!
+      @hits_prepared = true
+    end
   end
 
   def each_contig
@@ -29,6 +29,7 @@ class Annotator
   end
 
   def annotate
+    raise 'Blast hits must be prepared at first' unless @hits_prepared
     each_contig { |c| c.annotate }
   end
 end
