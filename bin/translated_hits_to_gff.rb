@@ -95,6 +95,8 @@ seqid_key = case params[:target].to_sym
 reader.each_hit do |hit|
   back_translate_coords! hit, target: params[:target].to_sym
 
+  frame = hit.data[seqid_key].split('_')[-1]
+
   case params[:mode].to_sym
   when :genome
     hit.data[seqid_key].gsub!(/_\d+\z/, '')
@@ -102,7 +104,6 @@ reader.each_hit do |hit|
     hit.data[seqid_key].gsub!(/_length_.+/, '')
   end
 
-  frame = hit.data[seqid_key].split('_')[-1]
   gff = hit.to_gff(target: :subject, frame: frame.to_s)
 
   gff_file.puts gff
