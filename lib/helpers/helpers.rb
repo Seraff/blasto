@@ -40,8 +40,35 @@ module Helpers
   end
 
   def append_to_filename(filename, what)
-    filename.gsub(/(\.\w+)\z/, "_#{what}\\1")
+    dir, file = Pathname.new(filename).split
+    file = file.to_s.split('.')
+    file[0] += "_#{what}"
+    file = file.join('.')
+    (dir + Pathname.new(file)).to_s
+  end
+
+  def change_path(path, new_dir:, append:, new_ext: nil)
+    base_name = Pathname.new(path).basename.to_s
+    base_name = append_to_filename(base_name, append)
+    base_name = base_name.split('.')[0] + ".#{new_ext}" if new_ext
+    (Pathname.new(new_dir) + Pathname.new(base_name)).to_s
+  end
+
+  def assure_params_provided(params, *options)
+    options.each do |o|
+      if !params[o]
+        puts "Not all required options provided, use --help for more info"
+        exit
+      end
+    end
   end
 end
 
 include Helpers
+
+class Bio::GFF::GFF3::Record
+  def reverse_strand?
+    raise "Frame is not provided: node #{seqname}" unless frame
+    [4, 5, 6].include? frame
+  end
+end

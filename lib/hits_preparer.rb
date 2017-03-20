@@ -2,6 +2,7 @@ class HitsPreparer
   attr_accessor :blast_reader
 
   def initialize(hits_path:, target:, mode:)
+    @blast_reader = BlastReader.new hits_path
   end
 
   def prepare!
@@ -13,6 +14,7 @@ class HitsPreparer
   protected
 
   def back_translate
+
   end
 
   def split_by_contigs

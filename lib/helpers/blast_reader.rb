@@ -3,6 +3,7 @@ require_relative './blast_hit.rb'
 
 class BlastReader
   attr_accessor :headers, :delimiter, :file
+  attr_reader :hits
 
   def initialize(file_name, delimiter=',')
     @hits = []
@@ -10,24 +11,52 @@ class BlastReader
     @file = File.open(file_name, 'r')
     @delimiter = delimiter
 
-    parse_file
+    parse_header
     true
   end
 
-  def hits
-    @hits
+  def each_hit
+    if @hits.any?
+      @hits.each do |hit|
+        yield hit
+      end
+    else
+      @file.each do |data|
+        yield parse_hit(data)
+      end
+    end
   end
 
-  def to_gff(filename, for_query = false)
-    filename = prepare_filename filename
-    f = File.open(filename, 'w')
+  def fetch_hits
+    parse_header
 
-    f.puts "##gff-version 3"
-    hits.each do |h|
-      f.puts h.to_gff(for_query)
+    @file.each do |data|
+      @hits << parse_hit(data)
     end
 
-    f.close
+    true
+  end
+
+  def modify_hits(output_path)
+    outfile = File.open output_path, 'w'
+    outfile.puts @headers.join(@delimiter)
+
+    each_hit do |h|
+      result = yield h
+
+      outfile.puts stringify_hit(h) if result
+    end
+
+    outfile.close
+  end
+
+  def hits_count
+    @hits_count ||= `cat #{@file.path} | wc -l`.to_i - 1
+  end
+
+  def rewind
+    @file.rewind
+    parse_header
   end
 
   ## prevents printing all the hits in console
@@ -41,32 +70,33 @@ class BlastReader
     "<##{self.class}:#{object_id.to_s(16)} #{vars}>"
   end
 
-  def each_hit
-    hits.each { |h| yield h }
-  end
-
   protected
 
-  def parse_file
+  def parse_header
+    return false if @headers
     @headers = parse_string @file.first
+  end
 
-    @file.each do |data|
-      data = parse_string data
-      raise "Wrong blast file format: node #{data[0]}" if data.count != @headers.count
+  def parse_hit(data)
+    raise 'Header is not parsed' unless @headers
 
-      data_hash = {}
-      @headers.each_with_index do |title, i|
-        data_hash[title] = data[i]
-      end
+    data = parse_string data
+    raise "Wrong blast file format: node #{data[0]}" if data.count != @headers.count
 
-      @hits << BlastHit.new(data_hash)
+    data_hash = {}
+    @headers.each_with_index do |title, i|
+      data_hash[title] = data[i]
     end
 
-    true
+    BlastHit.new(@headers, data_hash)
   end
 
   def parse_string(str)
     str.chomp.split(@delimiter).map(&:strip)
+  end
+
+  def stringify_hit(hit)
+    @headers.map { |h| hit.data[h] }.join @delimiter
   end
 
   def prepare_filename(name)

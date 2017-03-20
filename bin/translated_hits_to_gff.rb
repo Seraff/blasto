@@ -47,6 +47,8 @@ outfile_path ||= append_to_filename(reader.file.path, 'non_tranlated').gsub(/\.\
 gff_file = File.open outfile_path, 'w'
 gff_file.puts "##gff-version 3"
 
+pb = ProgressBar.create(title: 'Translating hits', starting_at: 0, total: reader.hits_count)
+
 reader.each_hit do |hit|
   hit.back_translate_coords! params[:target]
   gff = hit.to_gff params[:target]
@@ -62,6 +64,8 @@ reader.each_hit do |hit|
   end
 
   gff_file.puts gff_array.join("\t")
+
+  pb.increment
 end
 
 puts "Finished"

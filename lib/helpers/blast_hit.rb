@@ -8,7 +8,8 @@ class BlastHit
 
   attr_accessor :data
 
-  def initialize(data)
+  def initialize(headers, data)
+    @headers = headers
     @data = BlastHitData.new data
   end
 
