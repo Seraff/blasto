@@ -1,5 +1,10 @@
-require 'bio'
-require 'helpers'
+require_relative 'contig'
+require_relative 'frame'
+require_relative 'frame_collection'
+require_relative 'hit'
+require_relative 'hit_cluster'
+require_relative 'hit_collection'
+require_relative 'preparer'
 
 class Annotator
   attr_accessor :genome, :hits_prepared

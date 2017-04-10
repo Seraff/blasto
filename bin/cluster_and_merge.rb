@@ -12,40 +12,17 @@ params = Slop.parse do |o|
   end
 end
 
-unless params[:in]
-  puts "-in option is required, use --help for more info"
-  exit
-end
+assure_params_provided params, :in
+assure_file_param_has_extension params, :in, :gff
+assure_file_param_has_extension params, :out, :gff if params[:out]
 
-MAX_DIST = params[:m] || 64
-
-# sort
-sorted_path = append_to_filename(params[:in], 'sorted')
-`sort -n -k4,5 #{params[:in]} > #{sorted_path}`
-
-clustered_path = append_to_filename(sorted_path, 'clustered')
-`bedtools cluster -s -d #{MAX_DIST} -i #{sorted_path} > #{clustered_path}`
-
+max_dist = params[:m] || 64
 outpath = params[:out] || append_to_filename(params[:in], 'clusters')
-outfile = File.open(outpath, 'w')
-current_data = nil
 
-File.open(clustered_path, 'r').each do |entry|
-  data = entry.split("\t")
+clusterizer = GffClusterizer.new input: params[:in],
+                                 output: outpath,
+                                 max_distance: max_dist
 
-  unless current_data
-    current_data = data
-    next
-  end
+clusterizer.cluster_and_merge
 
-  if current_data[-1] == data[-1]
-    current_data[3] = data[3].to_i if data[3].to_i < current_data[3].to_i
-    current_data[4] = data[4].to_i if data[4].to_i > current_data[4].to_i
-  else
-    outfile.puts current_data[0..-2].join("\t")
-    current_data = data
-  end
-end
-
-`rm #{sorted_path} #{clustered_path}`
-outfile.close
+puts 'Finished'

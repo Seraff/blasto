@@ -47,10 +47,14 @@ module Helpers
     (dir + Pathname.new(file)).to_s
   end
 
-  def change_path(path, new_dir:, append:, new_ext: nil)
-    base_name = Pathname.new(path).basename.to_s
-    base_name = append_to_filename(base_name, append)
+  def change_path(path, new_dir: nil, append: nil, new_ext: nil)
+    pathname = Pathname.new(path)
+    base_name = pathname.basename.to_s
+    new_dir ||= pathname.dirname.to_s
+
+    base_name = append_to_filename(base_name, append) if append
     base_name = base_name.split('.')[0] + ".#{new_ext}" if new_ext
+
     (Pathname.new(new_dir) + Pathname.new(base_name)).to_s
   end
 
@@ -62,6 +66,16 @@ module Helpers
       end
     end
   end
+
+  def assure_file_param_has_extension(params, key, extension)
+    required_ext = extension.to_s.gsub('.', '')
+    actual_ext = Pathname.new(params[key.to_sym]).extname.gsub('.', '')
+
+    return true if required_ext == actual_ext
+
+    puts "File from option #{key} has incorrect extension"
+    exit
+  end
 end
 
 include Helpers
@@ -70,5 +84,41 @@ class Bio::GFF::GFF3::Record
   def reverse_strand?
     raise "Frame is not provided: node #{seqname}" unless frame
     [4, 5, 6].include? frame
+  end
+end
+
+class Bio::Sequence::NA
+  def aa_codon_usage
+    usage = {}
+
+    codon_usage.each do |codon, count|
+      aa = Bio::Sequence::NA.new(codon).translate
+      usage[aa] ||= {}
+      usage[aa][codon.upcase] ||= 0
+      usage[aa][codon.upcase] += count
+    end
+
+    usage
+  end
+
+  def aa_codon_usage_statistics
+    usage = aa_codon_usage
+    new_usage = {}
+
+    aa_count = usage.values.map(&:values).flatten.inject(0, :+)
+
+    usage.each do |aa_name, codons|
+      codons_count = codons.values.flatten.inject(0, :+)
+
+      new_usage[aa_name] ||= {}
+      new_usage[aa_name] = codons.map do |codon, count|
+        stats = { count: count,
+                  total_percentage: count.to_f/aa_count,
+                  aa_percentage: count.to_f/codons_count }
+        [codon, stats]
+      end.to_h
+    end
+
+    new_usage
   end
 end

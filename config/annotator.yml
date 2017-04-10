@@ -1,0 +1,6 @@
+annotator:
+  tmp_dir: 'tmp/annotator'
+  blast_hit_target: 'subject'
+  blast_hit_mode: 'genome'
+  clustering_max_distance: 64
+

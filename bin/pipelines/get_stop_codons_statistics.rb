@@ -18,7 +18,7 @@ recalc = params[:r] ? true : false
 filtered_path = change_path(params[:hits], new_dir: 'tmp', append: 'filtered')
 
 if !File.exists?(filtered_path) || recalc
-  system "bin/filter_by_criteria.rb -t 50 -in #{params[:hits]} -out #{filtered_path}"
+  system "bin/filter_by_criteria.rb -t 0.0001 -in #{params[:hits]} -out #{filtered_path}"
 end
 
 # back translate to gff

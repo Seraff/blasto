@@ -1,6 +1,9 @@
 require_relative './blast_hit_data.rb'
+require_relative './blast_hit/merging.rb'
 
 class BlastHit
+  include Merging
+
   TARGET_KEYS = {
     query:   { id: :qseqid, start: :qstart, finish: :qend, opposite_id: :sseqid },
     subject: { id: :sseqid, start: :sstart, finish: :send, opposite_id: :qseqid }
@@ -13,7 +16,7 @@ class BlastHit
     @data = BlastHitData.new data
   end
 
-  def to_gff(target)
+  def to_gff(target, extra_data_keys: [])
     keys = detect_keys target
 
     required_fields = [keys[:id], keys[:start], keys[:finish]]
@@ -38,7 +41,18 @@ class BlastHit
 
     note = "ID=#{data[keys[:opposite_id]]}_#{(1..16).to_a.map{ (0..9).to_a.sample }.join}_#{frame}"
 
+    if extra_data_keys.any?
+      extra_data = extra_data_keys.select { |k| data[k] }.map { |k| "#{k}: #{data[k]}" }.join(', ')
+      note += ";Note=#{extra_data}"
+    end
+
     [id, 'blast', 'gene', start, finish, '.', strand, frame, note].join("\t")
+  end
+
+  def real_borders(target, alignment_start:, alignment_finish:)
+    keys = detect_keys target
+
+
   end
 
   def back_translate_coords!(target)
@@ -62,9 +76,22 @@ class BlastHit
   end
 
   def detect_keys(target)
+    raise "Wrong target" if !target || !TARGET_KEYS.keys.include?(target.to_sym)
     target = target.to_sym
-    raise "Wrong target" unless TARGET_KEYS.keys.include? target
     TARGET_KEYS[target]
+  end
+
+  def opposite_keys(target)
+    detect_keys opposite_target(target)
+  end
+
+  def opposite_target(target)
+    case target
+    when :query
+      :subject
+    when :subject
+      :query
+    end
   end
 
   def detect_frame(target)

@@ -18,9 +18,10 @@ if !params[:in] || !params[:t]
 end
 
 def fits?(h)
+  return true
   fits = h.data[:evalue].to_f < THRESHOLD
-  fits &&= h.data[:qlen].to_i == h.data[:qend].to_i
-  fits &&= h.data[:qstart].to_i == 1
+  # fits &&= h.data[:qlen].to_i == h.data[:qend].to_i
+  # fits &&= h.data[:qstart].to_i == 1
   fits
 end
 

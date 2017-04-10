@@ -49,24 +49,7 @@ gff_file.puts "##gff-version 3"
 
 pb = ProgressBar.create(title: 'Translating hits', starting_at: 0, total: reader.hits_count)
 
-reader.each_hit do |hit|
-  hit.back_translate_coords! params[:target]
-  gff = hit.to_gff params[:target]
-
-  # additional gff processing
-  gff_array = gff.split("\t")
-
-  case params[:mode].to_sym
-  when :genome
-    gff_array[0].gsub!(/_\d+\z/, '')
-  when :transcriptome
-    gff_array[0].gsub!(/_length_.+/, '')
-  end
-
-  gff_file.puts gff_array.join("\t")
-
-  pb.increment
-end
+reader.back_translate gff_file, target: params[:target], mode: params[:mode], progress_bar: pb
 
 puts "Finished"
 

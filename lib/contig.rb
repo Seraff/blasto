@@ -1,5 +1,3 @@
-require 'helpers'
-
 class Contig
   def initialize(fasta_format)
     @fasta = fasta_format

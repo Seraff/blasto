@@ -18,12 +18,12 @@ bh_file.each do |line|
     next
   end
 
-  qseqid = data.first
+  qseqid = data.first(3).last
   formatted_qseqid = qseqid.split('_')[0..-2].join('_')
   nlen = fasta_data[formatted_qseqid]
   raise "Cannot detect nlen for #{formatted_qseqid}" unless nlen
 
-  data[0] = [qseqid.split('_')[0..-2], "length_#{nlen}", qseqid.split('_').last].flatten.join('_')
+  data[2] = [qseqid.split('_')[0..-2], "length_#{nlen}", qseqid.split('_').last].flatten.join('_')
 
   outfile.puts data.join(',')
 end
