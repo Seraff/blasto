@@ -1,13 +1,26 @@
-## IMPORTANT: for test purposes only
-
 #!/usr/bin/ruby
 require_relative 'lib.rb'
 
-# inputs
-genome_path = 'data/test/p57_DNA_nucleotides.fa'
-hits_path = 'data/Trinity-GG_p57_6_frames_translat_bl_report_best.csv'
-reads_path = 'data/datasets/p57_RNA_to_DNA/p57_bw2_sorted.bam'
+params = Slop.parse do |o|
+  o.banner = "P57 genome annotator"
+  o.string '-g', '(required) Genome .fasta file.'
+  o.string '-b', '(required) Blast hits .csv file.'
+  o.string '-r', '(required) Reads .bam file.'
+  o.string '-o', 'Output gff file.'
+  o.string '-t', '(required) Source for generating frame extracting (query|subject).'
+  o.on '-h', '--help', 'Print options' do
+    puts o
+    exit
+  end
+end
 
-annotator = Annotator.new genome_path: genome_path,
-                          hits_path: hits_path,
-                          reads_path: reads_path
+assure_params_provided params, :g, :b, :r, :t
+
+annotator = Annotator.new genome_path: params[:g],
+                          hits_path: params[:b],
+                          reads_path: params[:r]
+
+annotator.prepare target: params[:t], mode: :genome # TODO: dynamically mode
+
+annotator.annotate
+

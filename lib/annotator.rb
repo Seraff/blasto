@@ -20,11 +20,10 @@ class Annotator
   end
 
   def prepare(target:, mode:)
-    preparer = HitsPreparer.new hits_path: @hits_path, target: target, mode: mode
+    preparer = Preparer.new hits_path: @hits_path, target: target, mode: mode
 
-    if preparer.prepare!
-      @hits_prepared = true
-    end
+    return false unless preparer.prepare!
+    @hits_prepared = true
   end
 
   def each_contig
@@ -35,6 +34,7 @@ class Annotator
 
   def annotate
     raise 'Blast hits must be prepared at first' unless @hits_prepared
-    each_contig { |c| c.annotate }
+    puts 'Fake annotating...'
+    # each_contig { |c| c.annotate }
   end
 end

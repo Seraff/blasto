@@ -13,3 +13,8 @@ require_relative '../lib/helpers/blast_reader.rb'
 require_relative '../lib/helpers/fasta_reader.rb'
 require_relative '../lib/helpers/reads_statistics.rb'
 require_relative '../lib/helpers/gff_clusterizer.rb'
+
+# Annotator stuff
+
+require_relative '../lib/annotator.rb'
+require_relative '../lib/preparer.rb'

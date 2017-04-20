@@ -29,6 +29,8 @@ class GffClusterizer
     raise 'Not sorted or not clustered' if !@sorted || !@clustered
 
     outfile = File.open(output_path, 'w')
+    outfile.puts "##gff-version 3"
+
     current_data = nil
 
     File.open(clustered_path, 'r').each do |entry|

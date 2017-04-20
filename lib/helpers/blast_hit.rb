@@ -5,8 +5,8 @@ class BlastHit
   include Merging
 
   TARGET_KEYS = {
-    query:   { id: :qseqid, start: :qstart, finish: :qend, opposite_id: :sseqid },
-    subject: { id: :sseqid, start: :sstart, finish: :send, opposite_id: :qseqid }
+    query:   { id: :qseqid, start: :qstart, finish: :qend, opposite_id: :sseqid, frame: :qframe, len: :qlen },
+    subject: { id: :sseqid, start: :sstart, finish: :send, opposite_id: :qseqid, frame: :sframe, len: :slen }
   }
 
   attr_accessor :data
@@ -49,10 +49,22 @@ class BlastHit
     [id, 'blast', 'gene', start, finish, '.', strand, frame, note].join("\t")
   end
 
-  def real_borders(target, alignment_start:, alignment_finish:)
+  # target coordiates should be translated!
+  def extend_borders!(target)
     keys = detect_keys target
+    opposite_keys = opposite_keys target
 
+    left_shift = data[opposite_keys[:start]]
+    right_shift = data[opposite_keys[:len]]-data[opposite_keys[:finish]]
 
+    new_start = data[keys[:start]] - left_shift
+    new_start = 1 if new_start < 1
+
+    new_finish = data[keys[:finish]] + right_shift
+    new_finish = data[keys[:len]] if new_finish > data[keys[:len]]
+
+    data[keys[:start]] = new_start
+    data[keys[:finish]] = new_finish
   end
 
   def back_translate_coords!(target)
@@ -86,7 +98,7 @@ class BlastHit
   end
 
   def opposite_target(target)
-    case target
+    case target.to_sym
     when :query
       :subject
     when :subject
@@ -95,11 +107,15 @@ class BlastHit
   end
 
   def detect_frame(target)
-    data[detect_keys(target)[:id]].split('_')[-1].to_i
+    data[detect_keys(target)[:frame]] || data[detect_keys(target)[:id]].split('_')[-1].to_i
   end
 
   def detect_nalen(target)
     data[detect_keys(target)[:id]].match(/length_(?<len>\d+)/)[:len].to_i
+  end
+
+  def to_blast_row(delimiter: ',')
+    @headers.map { |h| "#{data[h]}" }.join delimiter
   end
 
   protected

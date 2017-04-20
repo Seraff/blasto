@@ -20,6 +20,8 @@ params = Slop.parse do |o|
   o.string '-out', '--output_file', 'Output file. If not provided, puts the output gff file to the input file folder.'
   o.string '-t', '--target', '(required) Source for generating gff file (query|subject)'
   o.string '-m', '--mode', "(required) Mode for input file parsing (genome|transcriptome)\n #{mode_help}"
+  o.bool '--merge', 'Merge close blast hits with the same query, subject and frame'
+  o.bool '--extend', 'Make an extended blast hits gff file'
   o.on '-h', '--help', 'Print options' do
     puts o
     puts "\nBy default output file is saved near the input file\n"
@@ -41,17 +43,33 @@ end
 input_file_path = params[:in] || select_file(subject: "translated blast hits")
 reader = BlastReader.new input_file_path
 
+if params[:merge]
+  merged_path = change_path(params[:in], append: "merged_#{SecureRandom.hex}")
+  merged_file = File.open(merged_path, 'w')
+
+  pb = ProgressBar.create(title: 'Merging', starting_at: 0, total: reader.hits_count)
+  reader.merge_hits merged_file, target: params[:t], max_distance: params[:max_distance] || 256, progress_bar: pb
+
+  reader.close
+
+  reader = BlastReader.new merged_path
+end
+
 outfile_path = params[:out]
-outfile_path ||= append_to_filename(reader.file.path, 'non_tranlated').gsub(/\.\w+\z/, '.gff')
+outfile_path ||= append_to_filename(params[:in], 'non_translated').gsub(/\.\w+\z/, '.gff')
 
 gff_file = File.open outfile_path, 'w'
 gff_file.puts "##gff-version 3"
 
 pb = ProgressBar.create(title: 'Translating hits', starting_at: 0, total: reader.hits_count)
 
-reader.back_translate gff_file, target: params[:target], mode: params[:mode], progress_bar: pb
+reader.back_translate gff_file, target: params[:target],
+                                mode: params[:mode],
+                                progress_bar: pb,
+                                extend_borders: params[:extend]
 
 puts "Finished"
 
 gff_file.close
 reader.file.close
+File.delete(merged_file) if merged_file
