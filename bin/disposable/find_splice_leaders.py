@@ -39,7 +39,7 @@ def max_intersection(seq, reference, mi, hamm_threshold):
 
   return 0
 
-def process_sl(record, stats, outfile):
+def process_sl(record, stats, outfile, full_outfile):
   na_count = max_intersection(str(record.seq), SL, SL_THRESHOLD, SL_HAMM_THRESHOLD)
   rev_record = deep_reverse_complement(record)
   na_count_rev = max_intersection(str(rev_record.seq), SL, SL_THRESHOLD, SL_HAMM_THRESHOLD)
@@ -48,8 +48,9 @@ def process_sl(record, stats, outfile):
     if cnt >= SL_THRESHOLD:
       rec = record if i == 0 else rev_record
       add_to_stats(cnt, rec[cnt:], stats, outfile)
+      SeqIO.write(record, full_outfile, "fastq")
 
-def process_poly_a(record, stats, outfile):
+def process_poly_a(record, stats, outfile, full_outfile):
   seq = str(record.seq)
   rev_record = deep_reverse_complement(record)
   rev_seq = str(rev_record.seq)
@@ -61,6 +62,7 @@ def process_poly_a(record, stats, outfile):
       if cnt >= POLY_A_THRESHOLD:
         rec = rev_record[:-cnt] if i == 0 else record[:-cnt]
         add_to_stats(cnt, rec, stats, outfile)
+        SeqIO.write(record, full_outfile, "fastq")
 
 def add_to_stats(cnt, rec, stats, outfile):
   if not cnt in stats:
@@ -80,19 +82,26 @@ reads_paths = sys.argv[1:]
 
 for path in reads_paths:
   f_size = int(os.popen('wc -l %s' % path).read().split()[0])
-  bar = progressbar.ProgressBar(max_value=int(math.ceil(f_size/4.0)))
+  # bar = progressbar.ProgressBar(max_value=int(math.ceil(f_size/4.0)))
 
   sl_stats = {}
   poly_t_stats = {}
 
   outfile_name = ntpath.basename(path).split('.')[0]
   sl_outfile = open("results/%s_SL.fq" % outfile_name, "w")
+  sl_full_outfile = open("results/%s_SL_full.fq" % outfile_name, "w")
   pa_outfile = open("results/%s_poly_a.fq" % outfile_name, "w")
+  pa_full_outfile = open("results/%s_poly_a_full.fq" % outfile_name, "w")
 
+  count = 0
   for i, record in enumerate(SeqIO.parse(path, "fastq")):
-    process_sl(record, sl_stats, sl_outfile)
-    process_poly_a(record, poly_t_stats, pa_outfile)
-    bar.update(i+1)
+    process_sl(record, sl_stats, sl_outfile, sl_full_outfile)
+    process_poly_a(record, poly_t_stats, pa_outfile, pa_full_outfile)
+
+    count += 1
+    if count % 100000 == 0:
+      print count
+    # bar.update(i+1)
 
   print sl_stats
   # plt.plot(sl_stats.keys(), sl_stats.values(), color='blue')
