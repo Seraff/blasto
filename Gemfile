@@ -10,5 +10,6 @@ gem 'highline'
 gem 'ruby-progressbar'
 gem 'descriptive-statistics'
 gem 'workers'
+gem 'matplotlib'
 
 gem 'config'

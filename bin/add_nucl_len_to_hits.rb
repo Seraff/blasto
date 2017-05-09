@@ -1,4 +1,4 @@
-#!/usr/bin/ruby
+#!/usr/bin/env ruby
 require_relative 'lib.rb'
 
 nucl_fasta_path = select_file(subject: "nucleotide FASTA file")

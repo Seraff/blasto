@@ -1,26 +1,32 @@
-#!/usr/bin/ruby
+#!/usr/bin/env ruby
 require_relative 'lib.rb'
 
 params = Slop.parse do |o|
   o.banner = "P57 genome annotator"
-  o.string '-g', '(required) Genome .fasta file.'
-  o.string '-b', '(required) Blast hits .csv file.'
-  o.string '-r', '(required) Reads .bam file.'
+  o.string '-g', '--genome', '(required) Genome .fasta file.'
+  o.string '-b', '--hits', '(required) Blast hits .csv file.'
+  o.string '-r', '--reads', '(required) Reads .bam file.'
+  o.bool '--skip-preparation', 'Use already prepared blast hits (if provided)'
   o.string '-o', 'Output gff file.'
-  o.string '-t', '(required) Source for generating frame extracting (query|subject).'
+  o.string '-t', '(required) Target for generating frame extracting (query|subject).'
   o.on '-h', '--help', 'Print options' do
     puts o
     exit
   end
 end
 
-assure_params_provided params, :g, :b, :r, :t
+assure_params_provided params, :genome
 
-annotator = Annotator.new genome_path: params[:g],
-                          hits_path: params[:b],
-                          reads_path: params[:r]
+unless params[:'skip-preparation']
+  assure_params_provided params, :hits, :reads, :t
+end
 
-annotator.prepare target: params[:t], mode: :genome # TODO: dynamically mode
+annotator = Annotator.new genome_path: params[:genome],
+                          hits_path: params[:hits],
+                          reads_path: params[:reads],
+                          skip_preparation: params[:'skip-preparation']
 
-annotator.annotate
+annotator.prepare target: params[:t], mode: :genome # TODO: dynamically detect mode
+
+# annotator.annotate
 

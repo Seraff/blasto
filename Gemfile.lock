@@ -2,7 +2,7 @@ GEM
   remote: https://rubygems.org/
   specs:
     Zenity.rb (0.1.2)
-    activesupport (5.0.2)
+    activesupport (5.1.0)
       concurrent-ruby (~> 1.0, >= 1.0.2)
       i18n (~> 0.7)
       minitest (~> 5.1)
@@ -14,12 +14,17 @@ GEM
       deep_merge (~> 1.1.1)
     deep_merge (1.1.1)
     descriptive-statistics (2.1.2)
+    ffi (1.9.18)
     hashie (3.5.5)
     highline (1.7.8)
     i18n (0.8.1)
+    matplotlib (0.1.0.alpha.20170426)
+      pycall (>= 0.1.0.alpha.20170426)
     minitest (5.10.1)
+    pycall (0.1.0.alpha.20170502)
+      ffi
     ruby-progressbar (1.8.1)
-    slop (4.4.1)
+    slop (4.4.3)
     thread_safe (0.3.6)
     tzinfo (1.2.3)
       thread_safe (~> 0.1)
@@ -35,9 +40,13 @@ DEPENDENCIES
   descriptive-statistics
   hashie
   highline
+  matplotlib
   ruby-progressbar
   slop (~> 4.4.1)
   workers
+
+RUBY VERSION
+   ruby 2.3.1p112
 
 BUNDLED WITH
    1.14.6

@@ -1,5 +1,8 @@
 require 'rubygems'
 require 'bundler/setup'
+require 'json'
+require 'securerandom'
+
 Bundler.require
 
 Config.load_and_set_settings('config/annotator.yml')

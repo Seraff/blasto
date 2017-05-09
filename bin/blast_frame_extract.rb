@@ -1,4 +1,4 @@
-#!/usr/bin/ruby
+#!/usr/bin/env ruby
 require_relative 'lib.rb'
 
 params = Slop.parse do |o|
@@ -34,6 +34,11 @@ out_file.puts "#{reader.headers.join(delimiter)}#{delimiter}#{new_column_name}"
 pb = ProgressBar.create(title: 'Extracting frame', starting_at: 0, total: reader.hits_count)
 
 reader.each_hit do |hit|
-  out_file.puts "#{hit.to_blast_row(delimiter: delimiter)}#{delimiter}#{hit.detect_frame(params[:t])}"
+  frame = hit.detect_frame(params[:t])
+
+  seqid_key = BlastHit::TARGET_KEYS[params[:t].to_sym][:id]
+  hit.data[seqid_key].gsub!(/\_\d+\z/, '')
+
+  out_file.puts [hit.to_csv(delimiter: delimiter), frame].join(delimiter)
   pb.increment
 end

@@ -6,8 +6,8 @@ class BlastReader
   attr_reader :hits, :hits_cached
 
   def initialize(file_name, delimiter=',')
-    file_name = prepare_filename file_name
-    @file = File.open file_name, 'r'
+    file_name = prepare_filename file_name.to_s
+    @file = File.open file_name.to_s, 'r'
     @delimiter = delimiter
     @hits_cached = false
 
@@ -78,14 +78,15 @@ class BlastReader
   end
 
   def rewind
+    return true if hits_cached?
     @file.rewind
     parse_headers || @file.readline
     true
   end
 
-  def reopen
+  def reopen(new_file_path=nil)
     @file.close
-    @file = File.open @file.path, 'r'
+    @file = File.open (new_file_path || @file.path), 'r'
     @headers = nil
     parse_headers
 
@@ -111,8 +112,24 @@ class BlastReader
     "<##{self.class}:#{object_id.to_s(16)} #{vars}>"
   end
 
-  ## back translate everything
-  def back_translate(output_file, target:, mode:, progress_bar: nil, extend_borders: false)
+  def back_translate!(target:, extend_borders: false, progress_bar: nil, output_path: nil)
+    if output_path
+      output_file = File.open(output_path, 'w')
+      output_file.puts headers.join(delimiter)
+    end
+
+    with_file_rewinded do
+      each_hit do |hit|
+        hit.extend_borders! target if extend_borders
+        hit.back_translate_coords! target
+
+        output_file.puts hit.to_csv if output_file
+        progress_bar.increment if progress_bar
+      end
+    end
+  end
+
+  def back_translate_to_gff(output_file, target:, mode:, progress_bar: nil, extend_borders: false)
     raise "Invalid target" unless %w(query subject).include?(target.to_s)
     raise "Invalid mode" unless %w(genome transcriptome).include?(mode.to_s)
 
@@ -171,24 +188,25 @@ class BlastReader
     output_file.puts headers.join(delimiter)
 
     merged_hits.each do |hit|
-      output_file.puts hit.to_blast_row(delimiter: delimiter)
+      output_file.puts hit.to_csv(delimiter: delimiter)
     end
 
     output_file.close
   end
 
-  def sort_by!(keys)
+  def sort_by!(keys, ouput_path: nil)
+    keys = [keys] unless keys.is_a? Array
     indexes = keys.map { |k, type| [@headers.index(k.to_s), type] }.to_h
     raise 'Incorrect keys' if indexes.any?(&:nil?)
 
     indexes = indexes.map { |i, type| [i+1, type] }.to_h
     index_str = indexes.map { |i, type| "-k #{i},#{i}#{ type == :digit ? 'n' : '' }" }.join ' '
-    tmp_path = change_path(file.path, append: 'tmp')
+    new_path = ouput_path || change_path(file.path, append: 'tmp')
 
-    `(head -n 1 #{file.path} && (tail -n +2 #{file.path} | sort -t#{delimiter} #{index_str})) > #{tmp_path}`
-    `mv #{tmp_path} #{file.path}`
+    `(head -n 1 #{file.path} && (tail -n +2 #{file.path} | sort -t#{delimiter} #{index_str})) > #{new_path}`
+    `mv #{new_path} #{file.path}` unless ouput_path
 
-    reopen
+    reopen ouput_path
   end
 
   protected

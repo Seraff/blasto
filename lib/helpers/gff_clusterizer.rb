@@ -15,7 +15,7 @@ class GffClusterizer
   end
 
   def sort
-    `sort -n -k4,5 #{@input_path} > #{sorted_path}`
+    `bedtools sort -i #{@input_path} > #{sorted_path}`
     @sorted = true
   end
 
@@ -61,7 +61,7 @@ class GffClusterizer
     remove_tmp_files
   end
 
-  # protected
+  protected
 
   def sorted_path
     change_path(@input_path, new_dir: TMP_DIR, append: "#{@session}_sorted")

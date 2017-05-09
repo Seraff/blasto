@@ -1,6 +1,7 @@
 class Preparer
   attr_accessor :blast_reader
-  HITS_FILENAME = 'hits.gff'
+  CSV_HITS_FILENAME = 'hits.csv'
+  GFF_HITS_FILENAME = 'hits.gff'
   CLUSTERS_FILENAME = 'clusters.gff'
 
   def initialize(hits_path:, target:, mode:)
@@ -9,61 +10,79 @@ class Preparer
 
   def prepare!
     create_tmp_folders
+
     back_translate
-    sort
+    sort_by_target
     split_by_contigs
     sort_and_cluster
   end
 
-  def back_translate
-    target = Settings.annotator.blast_hit_target
-    mode = Settings.annotator.blast_hit_mode
-    outfile = File.open(back_translated_path, 'w')
-    pb = ProgressBar.create(title: 'Translating hits', starting_at: 0, total: @blast_reader.hits_count)
+  def create_tmp_folders
+    if tmp_abs_pathname.exist?
+      tmp_abs_pathname.rmtree
+    else
+      tmp_abs_pathname.mkpath
+    end
 
-    @blast_reader.back_translate outfile, target: target, mode: mode, progress_bar: pb
-    outfile.close
+    hits_by_contigs_folder_pathname.mkpath unless hits_by_contigs_folder_pathname.exist?
   end
 
-  def sort
-    `bedtools sort -i #{back_translated_path} > #{sorted_path}`
+  def back_translate
+    target = Settings.annotator.blast_hit_target
+    pb = ProgressBar.create(title: 'Translating hits', starting_at: 0, total: @blast_reader.hits_count)
+
+    @blast_reader.back_translate! output_path: back_translated_path, target: target, progress_bar: pb
+    @blast_reader = BlastReader.new back_translated_path
+  end
+
+  def sort_by_target
+    @blast_reader.sort_by! target_hit_key, ouput_path: sorted_by_target_path
   end
 
   def split_by_contigs
-    current_data = []
-    current_contig = nil
+    blast_reader.cache_hits
 
-    pb = ProgressBar.create(title: 'Splitting file', starting_at: 0, total: `cat #{sorted_path} | wc -l`.to_i)
+    current_hits_heap = []
+    current_seqid = nil
 
-    File.open(sorted_path, 'r').each do |entry|
+    pb = ProgressBar.create(title: 'Splitting file', starting_at: 0, total: blast_reader.hits_count)
+
+    blast_reader.each_hit do |hit|
       pb.increment
-      next if entry[0] == '#'
 
-      data = entry.split("\t")
+      seqid = hit.data[target_hit_key]
 
-      if current_data.empty?
-        current_data << data
-        current_contig = data[0]
+      unless current_seqid
+        current_hits_heap << hit
+        current_seqid = seqid
         next
       end
 
-      if current_contig == data[0]
-        current_data << data
+      if current_seqid == seqid
+        current_hits_heap << hit
       else
 
-        contig_folder = hits_by_contigs_folder_pathname + Pathname.new(current_contig)
+        #write heap to files
+        contig_folder = hits_by_contigs_folder_pathname + Pathname.new(current_seqid)
         contig_folder.mkpath
 
-        f = File.open(contig_folder.join(HITS_FILENAME), 'w')
-        f.puts "##gff-version 3"
+        out_csv = File.open(contig_folder.join(CSV_HITS_FILENAME), 'w')
+        out_csv.puts blast_reader.headers.join(blast_reader.delimiter)
 
-        current_data.each do |array|
-          f.puts array.join("\t")
+        out_gff = File.open(contig_folder.join(GFF_HITS_FILENAME), 'w')
+        out_gff.puts "##gff-version 3"
+
+        current_hits_heap.each do |bh|
+          out_csv.puts bh.to_csv
+          out_gff.puts bh.to_gff Settings.annotator.blast_hit_target
         end
 
-        current_data = []
-        current_data << data
-        current_contig = data[0]
+        out_csv.close
+        out_gff.close
+
+        current_hits_heap = []
+        current_hits_heap << hit
+        current_seqid = seqid
       end
     end
   end
@@ -75,7 +94,7 @@ class Preparer
     folders.each do |folder|
       base_path = Pathname.new(folder)
 
-      hits_path = base_path.join(HITS_FILENAME)
+      hits_path = base_path.join(GFF_HITS_FILENAME)
       clusters_path = base_path.join(CLUSTERS_FILENAME)
 
       GffClusterizer.new(input: hits_path, output: clusters_path, max_distance: Settings.annotator.clustering_max_distance)
@@ -87,9 +106,6 @@ class Preparer
     true
   end
 
-  def drop_tmp_folders
-  end
-
   protected
 
   def tmp_abs_pathname
@@ -97,21 +113,23 @@ class Preparer
     tmp_dir.absolute? ? tmp_dir : Pathname.new(ROOT_PATH).join(tmp_dir)
   end
 
+  def sorted_by_target_path
+    tmp_abs_pathname + Pathname.new('hits_sorted_by_target.csv')
+  end
+
   def hits_by_contigs_folder_pathname
     tmp_abs_pathname + Pathname.new('hits_by_contigs')
   end
 
   def back_translated_path
-    file_name = change_path(@blast_reader.file.path, new_dir: '', new_ext: :gff)
-    (tmp_abs_pathname + Pathname.new(file_name).basename).to_s
+    tmp_abs_pathname + Pathname.new('hits_back_translated.csv')
   end
 
   def sorted_path
     change_path(back_translated_path, append: :sorted)
   end
 
-  def create_tmp_folders
-    tmp_abs_pathname.mkpath unless tmp_abs_pathname.exist?
-    hits_by_contigs_folder_pathname.mkpath unless hits_by_contigs_folder_pathname.exist?
+  def target_hit_key
+    BlastHit::TARGET_KEYS[Settings.annotator.blast_hit_target.to_sym][:id]
   end
 end

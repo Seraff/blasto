@@ -1,4 +1,4 @@
-#!/usr/bin/ruby
+#!/usr/bin/env ruby
 require_relative 'lib.rb'
 
 # generating fasta file from peptides cluster or something

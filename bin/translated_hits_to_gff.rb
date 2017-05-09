@@ -1,4 +1,4 @@
-#!/usr/bin/ruby
+#!/usr/bin/env ruby
 require_relative 'lib.rb'
 mode_help = %q{
         qseqid/sseqid must be in format: SEQID_length_<nucleotides count>[_optional_string]_<frame>
@@ -63,10 +63,10 @@ gff_file.puts "##gff-version 3"
 
 pb = ProgressBar.create(title: 'Translating hits', starting_at: 0, total: reader.hits_count)
 
-reader.back_translate gff_file, target: params[:target],
-                                mode: params[:mode],
-                                progress_bar: pb,
-                                extend_borders: params[:extend]
+reader.back_translate_to_gff gff_file, target: params[:target],
+                                       mode: params[:mode],
+                                       progress_bar: pb,
+                                       extend_borders: params[:extend]
 
 puts "Finished"
 

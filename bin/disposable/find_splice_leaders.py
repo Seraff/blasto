@@ -104,14 +104,14 @@ for path in reads_paths:
     # bar.update(i+1)
 
   print sl_stats
-  # plt.plot(sl_stats.keys(), sl_stats.values(), color='blue')
-  # for x, y in sl_stats.iteritems():
-  #   plt.annotate(y, xy=(x, y), xytext=(x, y+1000), fontsize=8, color='blue')
+  plt.plot(sl_stats.keys(), sl_stats.values(), color='blue')
+  for x, y in sl_stats.iteritems():
+    plt.annotate(y, xy=(x, y), xytext=(x, y+1000), fontsize=8, color='blue')
 
   print poly_t_stats
-  # plt.plot(poly_t_stats.keys(), poly_t_stats.values(), color='red')
-  # for x, y in poly_t_stats.iteritems():
-  #   plt.annotate(y, xy=(x, y), xytext=(x, y+5000), fontsize=8, color='red')
+  plt.plot(poly_t_stats.keys(), poly_t_stats.values(), color='red')
+  for x, y in poly_t_stats.iteritems():
+    plt.annotate(y, xy=(x, y), xytext=(x, y+5000), fontsize=8, color='red')
 
-  # plt.axis([0, 35, 0, 100000])
-  # plt.show()
+  plt.axis([0, 35, 0, 100000])
+  plt.show()

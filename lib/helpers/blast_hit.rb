@@ -49,7 +49,7 @@ class BlastHit
     [id, 'blast', 'gene', start, finish, '.', strand, frame, note].join("\t")
   end
 
-  # target coordiates should be translated!
+  # everything should be in AA coords!
   def extend_borders!(target)
     keys = detect_keys target
     opposite_keys = opposite_keys target
@@ -71,7 +71,7 @@ class BlastHit
     keys = detect_keys target
 
     frame = detect_frame target
-    nlen = detect_nalen target
+    nalen = detect_nalen target
     start = data[keys[:start]]
     finish = data[keys[:finish]]
 
@@ -80,11 +80,12 @@ class BlastHit
     new_finish = 3*finish+transposed_frame-1
 
     if [4,5,6].include? frame
-      new_start, new_finish = detect_reversed_coords new_start, new_finish, nlen
+      new_start, new_finish = detect_reversed_coords new_start, new_finish, nalen
     end
 
     data[keys[:start]] = new_start
     data[keys[:finish]] = new_finish
+    data[keys[:len]] = nalen
   end
 
   def detect_keys(target)
@@ -114,7 +115,7 @@ class BlastHit
     data[detect_keys(target)[:id]].match(/length_(?<len>\d+)/)[:len].to_i
   end
 
-  def to_blast_row(delimiter: ',')
+  def to_csv(delimiter: ',')
     @headers.map { |h| "#{data[h]}" }.join delimiter
   end
 

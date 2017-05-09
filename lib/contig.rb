@@ -1,6 +1,12 @@
 class Contig
+  attr_accessor :blast_hits
+  # has many Blast Hits
+  # has many ZOI
+  # has many
+
   def initialize(fasta_format)
     @fasta = fasta_format
+    init_hits
   end
 
   def seq
@@ -20,7 +26,7 @@ class Contig
 
   protected
 
-  def build_hit_clusters
-    ##
+  def init_hits
+
   end
 end
