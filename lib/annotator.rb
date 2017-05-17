@@ -9,18 +9,18 @@ require_relative 'preparer'
 class Annotator
   attr_accessor :genome, :hits_prepared
 
-  def initialize(genome_path:, hits_path:, reads_path:, skip_preparation: false)
-    @genome_path = genome_path
-    @hits_path = hits_path
-    @reads_path = reads_path
-    @hits_prepared = skip_preparation
+  def initialize
+    @genome_path = SettingsHelper.instance.abs_path_for_setting :genome
+
+    @reads_path = SettingsHelper.instance.abs_path_for_setting :genome_reads
+    @hits_prepared = Settings.annotator.skip_preparation
 
     @genome = Bio::FlatFile.open(Bio::FastaFormat, @genome_path)
   end
 
-  def prepare(target:, mode:)
+  def prepare
     return true if hits_prepared
-    preparer = Preparer.new hits_path: @hits_path, target: target, mode: mode
+    preparer = Preparer.new
 
     return false unless preparer.prepare!
     @hits_prepared = true
@@ -34,6 +34,7 @@ class Annotator
 
   def annotate
     raise 'Blast hits must be prepared at first' unless hits_prepared
+
     each_contig do |c|
       c.annotate
       break

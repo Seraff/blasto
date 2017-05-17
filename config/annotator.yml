@@ -1,6 +1,19 @@
 annotator:
+  ## Paths to source data
+  # genome: 'data/DNA_scaffolds.fa'
+  genome: 'tmp/DNA_scaffolds_NODE_1.fa'
+  genome_reads: 'data/datasets/p57_RNA_to_DNA/p57_bw2_sorted.bam'
+  # blast_hits: 'data/kinetoplastid_proteoms_bl_report_best_frames_extracted.csv'
+  blast_hits: 'tmp/blast_hits_NODE_1.csv'
+  # transcriptome: 'data/jaccard_Trinity.fasta_bl_report_best.csv'
+  transcriptome: 'tmp/transcriptome_NODE_1.csv'
+
+  ## Main settings
+  skip_preparation: false
   tmp_dir: 'tmp/annotator'
   blast_hit_target: 'subject'
   blast_hit_mode: 'genome'
   clustering_max_distance: 64
 
+  ## Transcriptome filtering
+  transcriptome_min_size: 256

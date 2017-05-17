@@ -1,8 +1,10 @@
 require_relative './blast_hit_data.rb'
 require_relative './blast_hit/merging.rb'
+require_relative './blast_hit/accessors.rb'
 
 class BlastHit
   include Merging
+  include Accessors
 
   TARGET_KEYS = {
     query:   { id: :qseqid, start: :qstart, finish: :qend, opposite_id: :sseqid, frame: :qframe, len: :qlen },
@@ -10,6 +12,7 @@ class BlastHit
   }
 
   attr_accessor :data
+  attr_reader :headers
 
   def initialize(headers, data)
     @headers = headers
@@ -92,6 +95,14 @@ class BlastHit
     raise "Wrong target" if !target || !TARGET_KEYS.keys.include?(target.to_sym)
     target = target.to_sym
     TARGET_KEYS[target]
+  end
+
+  def attr_by_target(attr_name, target)
+    data[TARGET_KEYS[target.to_sym][attr_name.to_sym]]
+  end
+
+  def assign_attr_by_target(attr_name, value, target)
+    @data[TARGET_KEYS[target.to_sym][attr_name.to_sym]] = value
   end
 
   def opposite_keys(target)

@@ -1,11 +1,15 @@
-class Preparer
-  attr_accessor :blast_reader
-  CSV_HITS_FILENAME = 'hits.csv'
-  GFF_HITS_FILENAME = 'hits.gff'
-  CLUSTERS_FILENAME = 'clusters.gff'
+require_relative 'helpers/file_splitter.rb'
+Dir["#{ROOT_PATH}/lib/preparer/*.rb"].each {|file| require file }
 
-  def initialize(hits_path:, target:, mode:)
-    @blast_reader = BlastReader.new hits_path
+class Preparer
+  include Paths
+
+  attr_reader :paths
+
+  def initialize
+    @genome_path = SettingsHelper.instance.abs_path_for_setting :genome
+    @hits_path = SettingsHelper.instance.abs_path_for_setting :blast_hits
+    @transcriptome_path = SettingsHelper.instance.abs_path_for_setting :transcriptome
   end
 
   def prepare!
@@ -13,94 +17,102 @@ class Preparer
 
     back_translate
     sort_by_target
-    split_by_contigs
-    sort_and_cluster
+    split_hits_by_contigs
+    split_transcripts_by_contigs
+
+    remove_unnecessary_contigs
+    clean_transcriptomes
+    make_gffs
+    cluster_hits
   end
 
   def create_tmp_folders
-    if tmp_abs_pathname.exist?
-      tmp_abs_pathname.rmtree
+    if Preparer.tmp_abs_pathname.exist?
+      Preparer.tmp_abs_pathname.rmtree
     else
-      tmp_abs_pathname.mkpath
+      Preparer.tmp_abs_pathname.mkpath
     end
 
-    hits_by_contigs_folder_pathname.mkpath unless hits_by_contigs_folder_pathname.exist?
+    Preparer.contigs_folder_path.mkpath unless Preparer.contigs_folder_path.exist?
+
+    FastaReader.new(@genome_path).each do |record|
+      Preparer.contig_folder_path(record.entry_id).mkpath
+    end
   end
 
   def back_translate
-    target = Settings.annotator.blast_hit_target
-    pb = ProgressBar.create(title: 'Translating hits', starting_at: 0, total: @blast_reader.hits_count)
+    blast_reader = BlastReader.new @hits_path
 
-    @blast_reader.back_translate! output_path: back_translated_path, target: target, progress_bar: pb
-    @blast_reader = BlastReader.new back_translated_path
+    pb = ProgressBar.create(title: 'Translating hits', starting_at: 0, total: blast_reader.hits_count)
+
+    blast_reader.back_translate! output_path: Preparer.back_translated_path,
+                                 target: target,
+                                 progress_bar: pb
+
+    @hits_path = Preparer.back_translated_path
   end
 
   def sort_by_target
-    @blast_reader.sort_by! target_hit_key, ouput_path: sorted_by_target_path
+    blast_reader = BlastReader.new @hits_path
+    blast_reader.sort_by! target_hit_key, ouput_path: Preparer.sorted_by_target_path(:hits)
+    @hits_path = Preparer.sorted_by_target_path(:hits)
+
+    blast_reader = BlastReader.new @transcriptome_path
+    blast_reader.sort_by! target_hit_key, ouput_path: Preparer.sorted_by_target_path(:transcripts)
+    @transcriptome_path = Preparer.sorted_by_target_path(:transcripts)
   end
 
-  def split_by_contigs
-    blast_reader.cache_hits
+  def split_hits_by_contigs
+    split_csv_by_contigs @hits_path, CSV_HITS_FILENAME, GFF_HITS_FILENAME
+  end
 
-    current_hits_heap = []
-    current_seqid = nil
+  def split_transcripts_by_contigs
+    split_csv_by_contigs @transcriptome_path, CSV_TRANSCRIPTS_FILENAME, GFF_TRANSCRIPTS_FILENAME
+  end
 
-    pb = ProgressBar.create(title: 'Splitting file', starting_at: 0, total: blast_reader.hits_count)
+  def remove_unnecessary_contigs
+    each_folder('Removing unnecessary contigs') do |folder|
+      transcripts_path = Preparer.transcripts_csv_path(folder)
 
-    blast_reader.each_hit do |hit|
-      pb.increment
-
-      seqid = hit.data[target_hit_key]
-
-      unless current_seqid
-        current_hits_heap << hit
-        current_seqid = seqid
-        next
-      end
-
-      if current_seqid == seqid
-        current_hits_heap << hit
-      else
-
-        #write heap to files
-        contig_folder = hits_by_contigs_folder_pathname + Pathname.new(current_seqid)
-        contig_folder.mkpath
-
-        out_csv = File.open(contig_folder.join(CSV_HITS_FILENAME), 'w')
-        out_csv.puts blast_reader.headers.join(blast_reader.delimiter)
-
-        out_gff = File.open(contig_folder.join(GFF_HITS_FILENAME), 'w')
-        out_gff.puts "##gff-version 3"
-
-        current_hits_heap.each do |bh|
-          out_csv.puts bh.to_csv
-          out_gff.puts bh.to_gff Settings.annotator.blast_hit_target
-        end
-
-        out_csv.close
-        out_gff.close
-
-        current_hits_heap = []
-        current_hits_heap << hit
-        current_seqid = seqid
+      if !transcripts_path.exist? || BlastReader.new(transcripts_path).hits_count.zero?
+        Preparer.contig_folder_path(folder).rmtree
       end
     end
   end
 
-  def sort_and_cluster
-    folders = Dir["#{hits_by_contigs_folder_pathname}/*"]
-    pb = ProgressBar.create(title: 'Clustering files', starting_at: 0, total: folders.count)
+  def clean_transcriptomes
+    each_folder('Cleaning transcriptomes') do |folder|
+      cleaner = TranscriptomeCleaner.new folder, target: target
+      result = cleaner.clean
 
-    folders.each do |folder|
-      base_path = Pathname.new(folder)
+      if result[:bad] && result[:bad].any?
+        writer = BlastWriter.new(result[:bad])
+        writer.write_hits Preparer.transcripts_bin_path(folder)
+      end
 
-      hits_path = base_path.join(GFF_HITS_FILENAME)
-      clusters_path = base_path.join(CLUSTERS_FILENAME)
+      if result[:good] && result[:good].any?
+        writer = BlastWriter.new(result[:good])
+        writer.write_hits Preparer.transcripts_csv_path(folder)
+      end
+    end
+  end
 
-      GffClusterizer.new(input: hits_path, output: clusters_path, max_distance: Settings.annotator.clustering_max_distance)
+  def make_gffs
+    each_folder('Making gffs') do |folder|
+      csv_to_gff Preparer.hits_csv_path(folder), Preparer.hits_gff_path(folder)
+      csv_to_gff Preparer.transcripts_csv_path(folder), Preparer.transcripts_gff_path(folder)
+    end
+  end
+
+  def cluster_hits
+    each_folder('Clustering files') do |folder|
+      hits_path = Preparer.hits_gff_path folder
+      next unless hits_path.exist?
+
+      GffClusterizer.new(input: hits_path,
+                         output: Preparer.hit_clusters_path(folder),
+                         max_distance: Settings.annotator.clustering_max_distance)
                     .cluster_and_merge
-
-      pb.increment
     end
 
     true
@@ -108,28 +120,54 @@ class Preparer
 
   protected
 
-  def tmp_abs_pathname
-    tmp_dir = Pathname.new(Settings.annotator.tmp_dir)
-    tmp_dir.absolute? ? tmp_dir : Pathname.new(ROOT_PATH).join(tmp_dir)
+  def target
+    Settings.annotator.blast_hit_target.to_sym
   end
 
-  def sorted_by_target_path
-    tmp_abs_pathname + Pathname.new('hits_sorted_by_target.csv')
+  def contig_folders
+    Dir["#{Preparer.contigs_folder_path.to_s}/*"]
   end
 
-  def hits_by_contigs_folder_pathname
-    tmp_abs_pathname + Pathname.new('hits_by_contigs')
-  end
+  def each_folder(title)
+    folders = contig_folders
+    pb = ProgressBar.create(title: title, starting_at: 0, total: folders.count)
 
-  def back_translated_path
-    tmp_abs_pathname + Pathname.new('hits_back_translated.csv')
-  end
-
-  def sorted_path
-    change_path(back_translated_path, append: :sorted)
+    folders.each do |folder|
+      yield folder
+      pb.increment
+    end
   end
 
   def target_hit_key
-    BlastHit::TARGET_KEYS[Settings.annotator.blast_hit_target.to_sym][:id]
+    BlastHit::TARGET_KEYS[target][:id]
+  end
+
+  def split_csv_by_contigs(csv_path, new_csv_filename, new_gff_filename)
+    blast_reader = BlastReader.new csv_path
+
+    pb = ProgressBar.create title: "Splitting #{Pathname.new(csv_path).basename.to_s}",
+                            starting_at: 0,
+                            total: blast_reader.hits_count
+
+    splitter = FileSplitters::BlastHits.new(csv_path, delimiter: ',', attr_name: target_hit_key)
+    splitter.each_heap(progress_bar: pb) do |hits|
+      seqid = hits.first.data[target_hit_key]
+
+      next unless Preparer.contig_folder_path(seqid).exist?
+
+      File.open(Preparer.contig_folder_path(seqid, filename: new_csv_filename), 'w') do |f|
+        f.puts blast_reader.headers.join(blast_reader.delimiter)
+        hits.each { |hit| f.puts hit.to_csv }
+      end
+    end
+  end
+
+  def csv_to_gff(csv_path, gff_path)
+    return false unless Pathname.new(csv_path).exist?
+
+    File.open(gff_path, 'w') do |f|
+      f.puts "##gff-version 3"
+      BlastReader.new(csv_path).each_hit { |hit| f.puts hit.to_gff(target) }
+    end
   end
 end

@@ -6,6 +6,13 @@ class Contig
 
   def initialize(fasta_format)
     @fasta = fasta_format
+
+    hits_path = SettingsHelper.instance.tmp_abs_pathname
+    hits_path += Pathname.new(Preparer::SPLITTED_DATA_FOLDER)
+    hits_path += Pathname.new("#{title}/hits.csv")
+
+    @hits_reader = BlastReader.new hits_path
+
     init_hits
   end
 
@@ -18,6 +25,7 @@ class Contig
   end
 
   def annotate
+    puts "annotating contig #{title}"
     # TODO: main code here
     # prepare hit clusters
     # choose best hits

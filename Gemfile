@@ -13,3 +13,4 @@ gem 'workers'
 gem 'matplotlib'
 
 gem 'config'
+gem 'range_operators'

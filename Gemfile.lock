@@ -23,6 +23,7 @@ GEM
     minitest (5.10.1)
     pycall (0.1.0.alpha.20170502)
       ffi
+    range_operators (0.1.1)
     ruby-progressbar (1.8.1)
     slop (4.4.3)
     thread_safe (0.3.6)
@@ -41,6 +42,7 @@ DEPENDENCIES
   hashie
   highline
   matplotlib
+  range_operators
   ruby-progressbar
   slop (~> 4.4.1)
   workers
