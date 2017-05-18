@@ -3,7 +3,7 @@ require_relative 'lib.rb'
 
 params = Slop.parse do |o|
   o.banner = "Cluster and merge .gff file"
-  o.string '-in', '--input_file', 'Input gff file'
+  o.string '-in', '--input_file', '(required) Input gff file'
   o.string '-out', '--output_file', 'Output gff file'
   o.string '-m', '--max_distance', 'Max distance between sequences for merging'
   o.on '-h', '--help', 'Print options' do
