@@ -10,6 +10,7 @@ class Preparer
     @genome_path = SettingsHelper.instance.abs_path_for_setting :genome
     @hits_path = SettingsHelper.instance.abs_path_for_setting :blast_hits
     @transcriptome_path = SettingsHelper.instance.abs_path_for_setting :transcriptome
+    @sl_mapping_path = SettingsHelper.instance.abs_path_for_setting :sl_mapping
   end
 
   def prepare!
@@ -17,13 +18,16 @@ class Preparer
 
     back_translate
     sort_by_target
+
     split_hits_by_contigs
     split_transcripts_by_contigs
+    split_sl_mapping_by_contigs
 
     remove_unnecessary_contigs
     clean_transcriptomes
     make_gffs
     cluster_hits
+    cluster_sl_mappings
   end
 
   def create_tmp_folders
@@ -63,11 +67,27 @@ class Preparer
   end
 
   def split_hits_by_contigs
-    split_csv_by_contigs @hits_path, CSV_HITS_FILENAME, GFF_HITS_FILENAME
+    split_csv_by_contigs @hits_path, CSV_HITS_FILENAME
   end
 
   def split_transcripts_by_contigs
-    split_csv_by_contigs @transcriptome_path, CSV_TRANSCRIPTS_FILENAME, GFF_TRANSCRIPTS_FILENAME
+    split_csv_by_contigs @transcriptome_path, CSV_TRANSCRIPTS_FILENAME
+  end
+
+  def split_sl_mapping_by_contigs
+    len = `wc -l #{@sl_mapping_path}`.split(/\s+/).first.to_i
+
+    pb = ProgressBar.create title: "Splitting #{@sl_mapping_path}",
+                            starting_at: 0,
+                            total: len
+
+    FileSplitter.new(@sl_mapping_path, delimiter: "\t", col_index: 0).each_heap(progress_bar: pb) do |seqid, heap|
+      next unless Preparer.contig_folder_path(seqid).exist?
+
+      File.open(Preparer.sl_mapping_path(seqid), 'w') do |f|
+        heap.each { |line| f.puts line }
+      end
+    end
   end
 
   def remove_unnecessary_contigs
@@ -109,13 +129,25 @@ class Preparer
       hits_path = Preparer.hits_gff_path folder
       next unless hits_path.exist?
 
-      GffClusterizer.new(input: hits_path,
-                         output: Preparer.hit_clusters_path(folder),
-                         max_distance: Settings.annotator.clustering_max_distance)
-                    .cluster_and_merge
+      Clusterizers::Gff.new(input: hits_path,
+                            output: Preparer.hit_clusters_path(folder),
+                            max_distance: Settings.annotator.clustering_max_distance)
+                       .perform
     end
 
     true
+  end
+
+  def cluster_sl_mappings
+    each_folder('Making SL clusters') do |folder|
+      sl_mapping_path = Preparer.sl_mapping_path folder
+      next unless sl_mapping_path.exist?
+
+      Clusterizers::Bed.new(input: sl_mapping_path,
+                            output: Preparer.sl_mapping_clusters_path(folder),
+                            max_distance: Settings.annotator.sl_mapping_clustering_max_distance)
+                       .perform
+    end
   end
 
   protected
@@ -142,7 +174,7 @@ class Preparer
     BlastHit::TARGET_KEYS[target][:id]
   end
 
-  def split_csv_by_contigs(csv_path, new_csv_filename, new_gff_filename)
+  def split_csv_by_contigs(csv_path, new_csv_filename)
     blast_reader = BlastReader.new csv_path
 
     pb = ProgressBar.create title: "Splitting #{Pathname.new(csv_path).basename.to_s}",
@@ -150,9 +182,7 @@ class Preparer
                             total: blast_reader.hits_count
 
     splitter = FileSplitters::BlastHits.new(csv_path, delimiter: ',', attr_name: target_hit_key)
-    splitter.each_heap(progress_bar: pb) do |hits|
-      seqid = hits.first.data[target_hit_key]
-
+    splitter.each_heap(progress_bar: pb) do |seqid, hits|
       next unless Preparer.contig_folder_path(seqid).exist?
 
       File.open(Preparer.contig_folder_path(seqid, filename: new_csv_filename), 'w') do |f|

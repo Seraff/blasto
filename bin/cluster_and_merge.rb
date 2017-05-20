@@ -19,10 +19,10 @@ assure_file_param_has_extension params, :out, :gff if params[:out]
 max_dist = params[:m] || 64
 outpath = params[:out] || append_to_filename(params[:in], 'clusters')
 
-clusterizer = GffClusterizer.new input: params[:in],
-                                 output: outpath,
-                                 max_distance: max_dist
+clusterizer = Clusterizers::Gff.new input: params[:in],
+                                    output: outpath,
+                                    max_distance: max_dist
 
-clusterizer.cluster_and_merge
+clusterizer.perform
 
 puts 'Finished'

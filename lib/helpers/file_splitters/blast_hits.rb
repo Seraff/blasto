@@ -9,14 +9,14 @@ module FileSplitters
     end
 
     def each_heap(progress_bar: nil)
-      super do |heap|
+      super do |val, heap|
         hits = heap.map do |raw_hit|
           splitted_hit = raw_hit.split(@delimiter)
           data = @headers.map { |h| [h, splitted_hit[@headers.index(h)]] }.to_h
           ::BlastHit.new(@headers, data)
         end
 
-        yield hits
+        yield val, hits
       end
     end
   end

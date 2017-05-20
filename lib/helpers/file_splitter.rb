@@ -1,4 +1,6 @@
 class FileSplitter
+  attr_reader :delimiter
+
   def initialize(file_path, delimiter:, col_index:)
     @file = File.open(file_path, 'r')
     @delimiter = delimiter
@@ -28,7 +30,7 @@ class FileSplitter
         current_heap << line
       else
 
-        yield current_heap.map(&:strip)
+        yield current_value, current_heap.map(&:strip)
 
         current_heap = []
         current_heap << line
@@ -36,7 +38,7 @@ class FileSplitter
       end
     end
 
-    yield current_heap.map(&:strip)
+    yield current_value, current_heap.map(&:strip)
   end
 end
 

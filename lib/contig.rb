@@ -26,10 +26,7 @@ class Contig
 
   def annotate
     puts "annotating contig #{title}"
-    # TODO: main code here
-    # prepare hit clusters
-    # choose best hits
-    # save a result to gff
+    # make ZOI collection
   end
 
   protected

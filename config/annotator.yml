@@ -7,6 +7,7 @@ annotator:
   blast_hits: 'tmp/blast_hits_NODE_1.csv'
   # transcriptome: 'data/jaccard_Trinity.fasta_bl_report_best.csv'
   transcriptome: 'tmp/transcriptome_NODE_1.csv'
+  sl_mapping: 'tmp/p57_trimmed_sl_sorted_NODE_1.bed'
 
   ## Main settings
   skip_preparation: false
@@ -14,6 +15,7 @@ annotator:
   blast_hit_target: 'subject'
   blast_hit_mode: 'genome'
   clustering_max_distance: 64
+  sl_mapping_clustering_max_distance: 5
 
   ## Transcriptome filtering
   transcriptome_min_size: 256
