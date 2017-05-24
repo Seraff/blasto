@@ -25,6 +25,7 @@ class Preparer
 
     remove_unnecessary_contigs
     clean_transcriptomes
+    clean_hits
     make_gffs
     cluster_hits
     cluster_sl_mappings
@@ -114,6 +115,15 @@ class Preparer
         writer = BlastWriter.new(result[:good])
         writer.write_hits Preparer.transcripts_csv_path(folder)
       end
+    end
+  end
+
+  def clean_hits
+    each_folder('Cleaning hits') do |folder|
+      reader = BlastReader.new(Preparer.hits_csv_path(folder))
+      reader.cache_hits
+      reader.hits.keep_if { |h| h.data[:evalue].to_f < Settings.annotator.max_evalue }
+      reader.write_to_file
     end
   end
 

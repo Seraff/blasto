@@ -18,7 +18,7 @@ class Clusterizer
     create_tmp_folder
     do_perform
   ensure
-    # remove_tmp_folder
+    remove_tmp_folder
   end
 
   def do_perform

@@ -10,12 +10,14 @@ annotator:
   sl_mapping: 'tmp/p57_trimmed_sl_sorted_NODE_1.bed'
 
   ## Main settings
+  max_evalue: 0.0000000001
   skip_preparation: false
   tmp_dir: 'tmp/annotator'
   blast_hit_target: 'subject'
   blast_hit_mode: 'genome'
   clustering_max_distance: 64
   sl_mapping_clustering_max_distance: 5
+  zoi_sl_searching_threshold: 10
 
   ## Transcriptome filtering
   transcriptome_min_size: 256
