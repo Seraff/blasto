@@ -30,9 +30,18 @@ class Annotator
   def annotate
     raise 'Blast hits must be prepared at first' unless hits_prepared
 
+    pb = ProgressBar.create title: "Annotating",
+                            starting_at: 0,
+                            total: @genome.count
+
+    @genome.rewind
+
     each_contig do |c|
+      pb.increment
       c.annotate
-      break
     end
+
+    BadTranscriptsLogger.gather_full_log
+    Contig.gather_full_annotation
   end
 end

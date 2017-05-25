@@ -1,13 +1,19 @@
 annotator:
   ## Paths to source data
-  # genome: 'data/DNA_scaffolds.fa'
-  genome: 'tmp/DNA_scaffolds_NODE_1.fa'
+
+  genome: 'data/DNA_scaffolds.fa'
+  # genome: 'tmp/DNA_scaffolds_NODE_1.fa'
+
   genome_reads: 'data/datasets/p57_RNA_to_DNA/p57_bw2_sorted.bam'
-  # blast_hits: 'data/kinetoplastid_proteoms_bl_report_best_frames_extracted.csv'
-  blast_hits: 'tmp/blast_hits_NODE_1.csv'
-  # transcriptome: 'data/jaccard_Trinity.fasta_bl_report_best.csv'
-  transcriptome: 'tmp/transcriptome_NODE_1.csv'
-  sl_mapping: 'tmp/p57_trimmed_sl_sorted_NODE_1.bed'
+
+  blast_hits: 'data/kinetoplastid_proteoms_bl_report_best_frames_extracted.csv'
+  # blast_hits: 'tmp/blast_hits_NODE_1.csv'
+
+  transcriptome: 'data/jaccard_Trinity.fasta_bl_report_best.csv'
+  # transcriptome: 'tmp/transcriptome_NODE_1.csv'
+
+  sl_mapping: 'data/SL_trimmered/p57_trimmed_sl_sorted.bed'
+  # sl_mapping: 'tmp/p57_trimmed_sl_sorted_NODE_1.bed'
 
   ## Main settings
   max_evalue: 0.0000000001
@@ -17,7 +23,8 @@ annotator:
   blast_hit_mode: 'genome'
   clustering_max_distance: 64
   sl_mapping_clustering_max_distance: 5
-  zoi_sl_searching_threshold: 10
+  zoi_sl_searching_inner_threshold: 30
+  zoi_sl_searching_outer_threshold: 10
 
   ## Transcriptome filtering
   transcriptome_min_size: 256

@@ -18,5 +18,5 @@ end
 
 annotator = Annotator.new
 annotator.prepare
-# annotator.annotate
+annotator.annotate
 

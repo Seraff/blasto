@@ -17,3 +17,4 @@ Dir["#{ROOT_PATH}/lib/helpers/*.rb"].each {|file| require file }
 
 require_relative '../lib/annotator.rb'
 require_relative '../lib/preparer.rb'
+require_relative '../lib/bad_transcripts_logger.rb'

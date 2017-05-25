@@ -120,7 +120,10 @@ class Preparer
 
   def clean_hits
     each_folder('Cleaning hits') do |folder|
-      reader = BlastReader.new(Preparer.hits_csv_path(folder))
+      hits_path = Preparer.hits_csv_path(folder)
+      next unless hits_path.exist?
+
+      reader = BlastReader.new(hits_path)
       reader.cache_hits
       reader.hits.keep_if { |h| h.data[:evalue].to_f < Settings.annotator.max_evalue }
       reader.write_to_file

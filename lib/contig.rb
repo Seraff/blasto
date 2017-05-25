@@ -5,6 +5,21 @@ class Contig
 
   ANNOTATION_FILENAME = 'annotation.gff'
 
+  class << self
+    def gather_full_annotation
+      full_ann_path = Preparer.abs_path_for(ANNOTATION_FILENAME)
+      full_ann_path.rmtree if full_ann_path.exist?
+      `touch #{full_ann_path}`
+
+      Dir["#{Preparer.contigs_folder_path.to_s}/*"].each do |folder_name|
+        path = Preparer.contig_folder_path(folder_name) + Pathname.new(ANNOTATION_FILENAME)
+        next unless path.exist?
+
+        `cat #{path} >> #{full_ann_path}`
+      end
+    end
+  end
+
   def initialize(fasta_format)
     @fasta = fasta_format
 
@@ -32,11 +47,10 @@ class Contig
   end
 
   def annotate
-    puts "annotating contig #{title}"
+    return false unless Preparer.contig_folder_path(title).exist?
 
     File.open(Preparer.contig_folder_path(title, filename: ANNOTATION_FILENAME), 'w') do |f|
       zoi.each do |z|
-        puts "valid? #{z.valid?}"
         f.puts z.to_gff if z.valid?
       end
     end
@@ -57,12 +71,16 @@ class Contig
 
   def blast_hits
     @blast_hits ||= begin
-      puts 'blast_hits'
-      reader = BlastReader.new(Preparer::hits_csv_path(title))
-      reader.cache_hits
+      elements = []
+      path = Preparer::hits_csv_path(title)
 
-      elements = reader.hits.map do |h|
-        ContigElement.new h.start(target), h.finish(target), h
+      if path.exist?
+        reader = BlastReader.new path
+        reader.cache_hits
+
+        elements = reader.hits.map do |h|
+          ContigElement.new h.start(target), h.finish(target), h
+        end
       end
 
       ContigElementCollection.new elements
@@ -71,20 +89,24 @@ class Contig
 
   def blast_hit_clusters
     @blast_hit_clusters ||= begin
-      puts 'blast_hit_clusters'
       elements = []
-      File.open(Preparer::hit_clusters_path(title), 'r').each do |line|
-        next if line.start_with? '#'
 
-        splitted = line.split "\t"
-        start = splitted[3].to_i
-        finish = splitted[4].to_i
-        frame = splitted[7].to_i
+      path = Preparer::hit_clusters_path(title)
 
-        hits = blast_hits.select_intersected([start, finish])
-        hits.keep_if { |h| h.data.detect_frame(target) == frame }
+      if path.exist?
+        File.open(path, 'r').each do |line|
+          next if line.start_with? '#'
 
-        elements << ContigElement.new(start, finish, hits)
+          splitted = line.split "\t"
+          start = splitted[3].to_i
+          finish = splitted[4].to_i
+          frame = splitted[7].to_i
+
+          hits = blast_hits.select_intersected([start, finish])
+          hits.keep_if { |h| h.data.detect_frame(target) == frame }
+
+          elements << ContigElement.new(start, finish, hits, extra_data: { frame: frame })
+        end
       end
 
       ContigElementCollection.new elements
@@ -94,14 +116,17 @@ class Contig
   def sl_mappings
     @sl_mappings ||= begin
       elements = []
+      path = Preparer::sl_mapping_clusters_path(title)
 
-      File.open(Preparer::sl_mapping_clusters_path(title), 'r').each do |line|
-        next if line.start_with? '#'
+      if path.exist?
+        File.open(path, 'r').each do |line|
+          next if line.start_with? '#'
 
-        splitted = line.split "\t"
-        start = splitted[1].to_i
-        finish = splitted[2].to_i
-        elements << ContigElement.new(start, finish, nil)
+          splitted = line.split "\t"
+          start = splitted[1].to_i
+          finish = splitted[2].to_i
+          elements << ContigElement.new(start, finish, nil)
+        end
       end
 
       ContigElementCollection.new elements
@@ -110,17 +135,20 @@ class Contig
 
   def zoi
     @zoi ||= begin
-      puts 'preparing zoi'
       elements = []
+      path = Preparer::transcripts_gff_path(title)
 
-      File.open(Preparer::transcripts_gff_path(title), 'r').each do |line|
-        next if line.start_with? '#'
+      if path.exist?
+        File.open(path, 'r').each do |line|
+          line = line.strip
+          next if line.start_with? '#'
 
-        splitted = line.split "\t"
-        start = splitted[3].to_i
-        finish = splitted[4].to_i
+          splitted = line.split "\t"
+          start = splitted[3].to_i
+          finish = splitted[4].to_i
 
-        elements << Zoi.new(self, start, finish)
+          elements << Zoi.new(self, start, finish, extra_data: { raw_gff: line })
+        end
       end
 
       ContigElementCollection.new elements

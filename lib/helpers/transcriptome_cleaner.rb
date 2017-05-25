@@ -1,10 +1,11 @@
 require_relative 'blast_reader'
 
 class TranscriptomeCleaner
-  attr_accessor :data_hash, :target, :reader
+  attr_accessor :data_hash, :target, :reader, :folder
   BIN_PATH = 'tmp/annotator/transcriptome_bin.csv'
 
   def initialize(folder, target:)
+    @folder = folder
     @target = target
     @reader = BlastReader.new Preparer.transcripts_csv_path(folder)
     @reader.cache_hits
@@ -12,8 +13,8 @@ class TranscriptomeCleaner
 
   def clean
     normalize
-    filter_by_size
 
+    filter_by_size
     filter_by_intersections
   end
 
@@ -33,9 +34,15 @@ class TranscriptomeCleaner
   end
 
   def filter_by_size
+    short_hits = []
+
     @reader.hits.keep_if do |hit|
-      (hit.finish(target) - hit.start(target) + 1) >= Settings.annotator.transcriptome_min_size
+      result = (hit.finish(target) - hit.start(target) + 1) >= Settings.annotator.transcriptome_min_size
+      short_hits << hit unless result
+      result
     end
+
+    BadTranscriptsLogger.add_hit_collection_to_bin(folder, hits: short_hits, reason: :short)
   end
 
   def filter_by_intersections
@@ -45,7 +52,11 @@ class TranscriptomeCleaner
     data_hash = data_hash.to_h
 
     result = classify_intervals data_hash.keys
-    result.map { |k, v| [k, v.map { |r| data_hash[r] }] }.to_h
+    result = result.map { |k, v| [k, v.map { |r| data_hash[r] }] }.to_h
+
+    BadTranscriptsLogger.add_hit_collection_to_bin(folder, hits: result[:bad], reason: :intersected)
+
+    result
   end
 
   def classify_intervals(data)
