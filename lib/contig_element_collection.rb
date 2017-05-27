@@ -14,4 +14,23 @@ class ContigElementCollection < Array
 			coords.select { |c| ![c[0]..c[1], (e.start)..(e.finish)].intersection.nil? }.any?
 		end
 	end
+
+	def select_totally_covered
+		covered = []
+
+		each do |el|
+			each do |other|
+				next if other == el
+
+				covered << other if el.totally_covers?(other)
+			end
+		end
+	end
+
+	# smells very bad
+	def covers?(a, b)
+    [a, b].intersection == (b.first..b.last)
+  end
 end
+
+Dir["#{ROOT_PATH}/lib/contig_element_collections/*.rb"].each {|file| require file }

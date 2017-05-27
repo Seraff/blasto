@@ -24,7 +24,7 @@ class Preparer
     split_sl_mapping_by_contigs
 
     remove_unnecessary_contigs
-    clean_transcriptomes
+    # clean_transcriptomes
     clean_hits
     make_gffs
     cluster_hits
@@ -105,11 +105,6 @@ class Preparer
     each_folder('Cleaning transcriptomes') do |folder|
       cleaner = TranscriptomeCleaner.new folder, target: target
       result = cleaner.clean
-
-      if result[:bad] && result[:bad].any?
-        writer = BlastWriter.new(result[:bad])
-        writer.write_hits Preparer.transcripts_bin_path(folder)
-      end
 
       if result[:good] && result[:good].any?
         writer = BlastWriter.new(result[:good])

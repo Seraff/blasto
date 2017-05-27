@@ -36,12 +36,16 @@ class Annotator
 
     @genome.rewind
 
+    BadTranscriptsLogger.remove_old_logs
+
     each_contig do |c|
-      pb.increment
       c.annotate
+      pb.increment
     end
 
     BadTranscriptsLogger.gather_full_log
     Contig.gather_full_annotation
+
+    BadTranscriptsLogger.print_reasons_stats
   end
 end

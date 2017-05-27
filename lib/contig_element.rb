@@ -7,4 +7,8 @@ class ContigElement
 		@data = data
 		@extra_data = extra_data
 	end
+
+	def totally_covers?(other)
+		[(start..finish), (other.start..other.finish)].intersection == (other.start..other.finish)
+	end
 end

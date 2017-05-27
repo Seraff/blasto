@@ -3,35 +3,68 @@ class Zoi
 	FRAMES = (1..6).to_a.freeze
 	START_CODON = 'M'
 
-	attr_reader :contig, :start, :finish, :direction, :frame, :invalidity_reason, :extra_data
+	VALID_COLOR = '#009900'
+	INVALID_COLOR = '#CC070E'
 
-	def initialize(contig, start, finish, extra_data: {})
+	attr_reader :contig, :start, :finish, :direction, :frame,
+							:validation_error, :extra_data,
+							:gene_start, :gene_finish, :source_frame, :raw_gff
+
+	def initialize(contig, start, finish, raw_gff)
 		@contig = contig
 		@start = start
 		@finish = finish
-		@invalidity_reason = nil
 		@extra_data = extra_data
+		@source_frame = source_frame
+		@raw_gff = raw_gff
+
+		@validation_error = nil
+		@gene_start = nil
+		@gene_finish = nil
+	end
+
+	def annotate
+		idx = aa_seq(local_frame).index(START_CODON)
+
+		@gene_start = forward? ? start+idx*3+local_frame-1 : finish-idx*3-local_frame+4
+		@gene_finish = forward? ? finish : start #TODO
+
+		self
+	end
+
+	def annotated?
+		!@gene_start.nil? && !@gene_finish.nil?
+	end
+
+	def make_invalid!(reason: nil)
+		@valid = false
+		@validation_error = reason if reason
 	end
 
 	def valid?
-		@invalidity_reason = nil
+		if @valid.nil?
+			@valid = begin
+				@validation_error = nil
 
-		if !hit_clusters.one?
-			@invalidity_reason = :hit_clusters_not_one
-		elsif sl_mapping.nil?
-			@invalidity_reason = :has_no_sl_mappings
-		elsif local_frame.nil?
-			@invalidity_reason = :cannot_detect_frame
-		elsif !in_bh_cluster_frame?
-			@invalidity_reason = :hit_cluster_has_another_frame
+				if hit_clusters.count > 1
+					@validation_error = :hit_clusters_more_than_one
+				elsif sl_mapping.nil?
+					@validation_error = :has_no_sl_mappings
+				elsif local_frame.nil?
+					@validation_error = :cannot_detect_frame
+				elsif !in_bh_cluster_frame?
+					@validation_error = :hit_cluster_has_another_frame
+				end
+
+				@validation_error.nil?
+			end
 		end
 
-		if @invalidity_reason
-			BadTranscriptsLogger.add_to_bin contig.title, raw_gff: extra_data[:raw_gff],
-																										reason: @invalidity_reason
-		end
+		@valid
+	end
 
-		@invalidity_reason.nil?
+	def invalid?
+		!valid?
 	end
 
 	def seq
@@ -90,24 +123,6 @@ class Zoi
 		end
 	end
 
-	def gene_start
-		idx = aa_seq(local_frame).index(START_CODON)
-
-		if forward?
-			start+idx*3+local_frame-1
-		else
-			finish-idx*3-local_frame+4
-		end
-	end
-
-	def gene_finish
-		if forward?
-			finish
-		else
-			start
-		end
-	end
-
 	def hit_clusters
 		@hit_clusters ||= begin
 			contig.blast_hit_clusters.select_intersected([start, finish])
@@ -116,6 +131,20 @@ class Zoi
 
 	def hit_cluster
 		hit_clusters.first
+	end
+
+	def blast_hits
+		@blast_hits ||= begin
+			contig.blast_hits.select_intersected([start, finish])
+		end
+	end
+
+	def best_blast_hit
+		@best_blast_hit ||= begin
+			blast_hits.sort do |a, b|
+				[b.data.data[:evalue].to_f, a.data.data[:pident].to_f] <=> [a.data.data[:evalue].to_f, b.data.data[:pident].to_f]
+			end.last
+		end
 	end
 
 	def sl_mappings
@@ -131,12 +160,46 @@ class Zoi
 	end
 
 	def to_gff
-		left, right = [gene_start, gene_finish].sort
-		f = [4,5,6].include?(global_frame) ? (global_frame - 4) : (global_frame - 1)
-		[contig.title, :blast, :gene, left, right, '.', direction, f, "ID=#{SecureRandom.hex}_#{global_frame};color=#009900"].join("\t")
+		color = valid? ? VALID_COLOR : INVALID_COLOR
+
+		if annotated?
+			left, right = [gene_start, gene_finish].sort
+			f = global_frame
+			d = direction
+			notes = "ID=#{SecureRandom.hex}"
+		else
+			left, right = [start, finish].sort
+			f = raw_gff_hash[:frame]
+			d = raw_gff_hash[:direction]
+			notes = raw_gff_hash[:notes]
+		end
+
+		unless valid?
+			notes.gsub!(/ID=(.+?)(?=(;|\z))/, "ID=\\1_(#{validation_error});")
+		end
+
+		notes += ";color=#{color}"
+
+		f = [4,5,6].include?(f) ? (f - 4) : (f - 1)
+		[contig.title, :blast, :gene, left, right, '.', d, f, notes].join("\t")
+	end
+
+	def normalize!
+		@start, @finish = [@start, @finish].sort
+	end
+
+	def to_range
+		start..finish
 	end
 
 	protected
+
+	def raw_gff_hash
+		@raw_gff_hash ||= begin
+			s = raw_gff.split("\t")
+			{ direction: s[6], frame: s[7].to_i, notes: s[8] }
+		end
+	end
 
 	def in_bh_cluster_frame?
 		return false unless hit_cluster
