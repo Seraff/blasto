@@ -122,3 +122,11 @@ class Bio::Sequence::NA
     new_usage
   end
 end
+
+def write_log_to_new_gff(path, start, stop, direction: '+', contig: nil, extra: {})
+  contig ||= 'NODE_1_length_304652_cov_71.8364'
+  extra['ID'] ||= SecureRandom.hex
+  notes = extra.to_a.map{|e| e.join('=') }.join(';')
+  gff = [contig, 'blast', 'gene', start, stop, '.', direction, 1, notes].join("\t")
+  File.open(path, 'a+'){ |f| f.puts gff }
+end

@@ -21,7 +21,22 @@ module ContigElementCollections
 
 			log_filtered
 
+			each do |z|
+				write_log_to_new_gff 'tmp/annotator/contigs/NODE_1_length_304652_cov_71.8364/a_test.gff',
+														 z.best_blast_hit.start,
+														 z.best_blast_hit.finish,
+														 extra: { 'color' => '#e510ed' }
+			end
+
 			self
+		end
+
+		def find_by_id(name)
+			detect { |e| e.id.start_with? name }
+		end
+
+		def filtered
+			self.class.new @filtered.values.flatten
 		end
 
 		# protected
@@ -42,10 +57,10 @@ module ContigElementCollections
 
 					start = group.sort_by { |e| e.start }.first.start
 					finish = group.sort_by { |e| e.finish }.last.finish
-					merged << ::Zoi.new(group.first.contig,
-						                  start,
-					                    finish,
-					                    group.first.raw_gff)
+					merged << ContigElements::Zoi.new(group.first.contig,
+						                                start,
+					                                  finish,
+					                                  group.first.raw_gff)
 				end
 			end
 

@@ -1,5 +1,4 @@
 require_relative 'contig_element'
-require_relative 'zoi'
 
 class ContigElementCollection < Array
 	attr_accessor :collection
@@ -10,21 +9,25 @@ class ContigElementCollection < Array
 
 		coll = select { |e| e.start <= max_finish }.select { |e| e.finish >= min_start }
 
-		coll.select do |e|
+		result = coll.select do |e|
 			coords.select { |c| ![c[0]..c[1], (e.start)..(e.finish)].intersection.nil? }.any?
 		end
+
+		self.class.new result
 	end
 
 	def select_totally_covered
-		covered = []
+		covered = self.class.new
 
 		each do |el|
 			each do |other|
 				next if other == el
 
-				covered << other if el.totally_covers?(other)
+				covered << other if el.covers?(other)
 			end
 		end
+
+		covered
 	end
 
 	# smells very bad

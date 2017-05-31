@@ -14,6 +14,7 @@ annotator:
 
   ## Main settings
   max_evalue: 0.0000000001
+  # max_evalue: 0.01
   skip_preparation: true
   tmp_dir: 'tmp/annotator'
   blast_hit_target: 'subject'
@@ -22,6 +23,8 @@ annotator:
   sl_mapping_clustering_max_distance: 5
   zoi_sl_searching_inner_threshold: 100
   zoi_sl_searching_outer_threshold: 10
+
+  polycistronic_sl_threshold: 15
 
   ## Transcriptome filtering
   transcriptome_min_size: 100

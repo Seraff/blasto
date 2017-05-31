@@ -1,14 +1,25 @@
 class ContigElement
-	attr_accessor :start, :finish, :data, :extra_data
+	attr_accessor :start, :finish, :contig
 
-	def initialize(start, finish, data, extra_data: {})
-		@start = [start, finish].map(&:to_i).min
-		@finish = [start, finish].map(&:to_i).max
-		@data = data
-		@extra_data = extra_data
+	def covers?(other)
+		IntervalsHelper.covers? (start..finish), (other.start..other.finish)
 	end
 
-	def totally_covers?(other)
-		[(start..finish), (other.start..other.finish)].intersection == (other.start..other.finish)
+	def intersects?(other)
+		IntervalsHelper.intersects? start..finish, other.start..other.finish
+	end
+
+	def seq
+		@seq ||= Bio::Sequence::NA.new contig.seq[(start-1)..(finish-1)]
+	end
+
+	def aa_seq(frame)
+		seq.translate frame
+	end
+
+	def na_len
+		seq.length
 	end
 end
+
+Dir["#{ROOT_PATH}/lib/contig_elements/*.rb"].each {|file| require file }

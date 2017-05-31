@@ -51,7 +51,7 @@ class Contig
 
     File.open(Preparer.contig_folder_path(title, filename: ANNOTATION_FILENAME), 'w') do |f|
       zoi.each do |z|
-        f.puts z.annotate.to_gff
+        f.puts z.to_gff if z.annotate
       end
     end
 
@@ -79,7 +79,7 @@ class Contig
         reader.cache_hits
 
         elements = reader.hits.map do |h|
-          ContigElement.new h.start(target), h.finish(target), h
+          ContigElements::Basic.new self, h.start(target), h.finish(target), h
         end
       end
 
@@ -105,7 +105,7 @@ class Contig
           hits = blast_hits.select_intersected([start, finish])
           hits.keep_if { |h| h.data.detect_frame(target) == frame }
 
-          elements << ContigElement.new(start, finish, hits, extra_data: { frame: frame, forward: [1, 2, 3].include?(frame) })
+          elements << ContigElements::Basic.new(self, start, finish, hits, extra_data: { frame: frame, forward: [1, 2, 3].include?(frame) })
         end
       end
 
@@ -115,7 +115,7 @@ class Contig
         elements.each do |other|
           next if other == e
 
-          if other.totally_covers?(e)# && other.extra_data[:forward] != e.extra_data[:forward]
+          if other.covers?(e)# && other.extra_data[:forward] != e.extra_data[:forward]
             covered = true
             break
           end
@@ -140,7 +140,7 @@ class Contig
           splitted = line.split "\t"
           start = splitted[1].to_i
           finish = splitted[2].to_i
-          elements << ContigElement.new(start, finish, nil)
+          elements << ContigElements::Basic.new(self, start, finish, nil)
         end
       end
 
@@ -162,7 +162,7 @@ class Contig
           start = splitted[3].to_i
           finish = splitted[4].to_i
 
-          elements << Zoi.new(self, start, finish, line)
+          elements << ContigElements::Zoi.new(self, start, finish, line)
         end
       end
 
