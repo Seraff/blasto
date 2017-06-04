@@ -53,6 +53,7 @@ class Preparer
     blast_reader.back_translate! output_path: Preparer.back_translated_path,
                                  target: target,
                                  progress_bar: pb
+                                 # extend_borders: true
 
     @hits_path = Preparer.back_translated_path
   end

@@ -1,11 +1,19 @@
 class BadTranscriptsLogger
 	LOG_FILENAME = 'bad_transcripts.gff'
-	REASONS = [:short, :intersected,
-						 :hit_clusters_more_than_one,
-						 :has_no_sl_mappings,
-						 :cannot_detect_frame,
-						 :hit_cluster_has_another_frame,
-						 :no_hit_clusters]
+	TOTAL_STAT_FILENAME = 'stats.txt'
+
+	REASONS = [
+							 :short,
+							 :intersected,
+							 :merged,
+							 :totally_covered,
+							 :hit_clusters_more_than_one,
+							 :has_no_sl_mappings,
+							 :cannot_detect_frame,
+							 :hit_cluster_has_another_frame,
+							 :no_hit_clusters,
+							 :cannot_detect_stop
+						]
 
 	class << self
 		def remove_old_logs
@@ -46,9 +54,23 @@ class BadTranscriptsLogger
 		end
 
 		def print_reasons_stats
-			REASONS.each do |reason|
-				puts "#{reason} " + `cat #{Preparer.abs_path_for(LOG_FILENAME)} | grep #{reason} | wc -l`
+			path = Preparer.abs_path_for(TOTAL_STAT_FILENAME)
+			path.rmtree if path.exist?
+
+			File.open(path, 'w') do |f|
+				total_count = 0
+
+				REASONS.each do |reason|
+					count = `cat #{Preparer.abs_path_for(LOG_FILENAME)} | grep #{reason} | wc -l`.to_i
+					total_count += count
+					f.puts "#{reason}: #{count}"
+				end
+
+				f.puts
+				f.puts "total: #{total_count}"
 			end
+
+			puts `cat #{path}`
 		end
 	end
 end

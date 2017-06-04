@@ -3,7 +3,9 @@ annotator:
   genome_reads: 'data/datasets/p57_RNA_to_DNA/p57_bw2_sorted.bam'
 
   genome: 'data/DNA_scaffolds.fa'
-  blast_hits: 'data/kinetoplastid_proteoms_bl_report_best_frames_extracted.csv'
+  # blast_hits: 'data/kinetoplastid_proteoms_bl_report_frames_extracted.csv'
+  # blast_hits: 'data/kinetoplastid_proteoms_bl_report_BEST_frames_extracted.csv'
+  blast_hits: 'data/prepared_for_annotator/BEST_hits_with_jaculum.csv'
   transcriptome: 'data/jaccard_Trinity.fasta_bl_report_best.csv'
   sl_mapping: 'data/SL_trimmered/p57_trimmed_sl_sorted.bed'
 

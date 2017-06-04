@@ -64,6 +64,7 @@ module ContigElementCollections
 				end
 			end
 
+			@filtered[:merged] = to_remove
 			delete_if { |e| to_remove.include? e }
 			push(*merged)
 		end

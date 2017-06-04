@@ -12,14 +12,15 @@ class BlastHit
   }
 
   attr_accessor :data
-  attr_reader :headers
+  attr_reader :headers, :extended
 
   def initialize(headers, data)
     @headers = headers
     @data = BlastHitData.new data
+    @extended = false
   end
 
-  def to_gff(target, extra_data_keys: [])
+  def to_gff(target, extra_data_keys: [], show_extended: false)
     keys = detect_keys target
 
     required_fields = [keys[:id], keys[:start], keys[:finish]]
@@ -38,18 +39,37 @@ class BlastHit
       finish = tmp
     end
 
-    id = data[keys[:id]]
+    contig_name = data[keys[:id]]
     start = 1 if start.zero?
     frame = detect_frame target
 
-    note = "ID=#{data[keys[:opposite_id]]}_#{(1..16).to_a.map{ (0..9).to_a.sample }.join}_#{frame}"
+    id = [data[keys[:opposite_id]], (1..16).to_a.map { (0..9).to_a.sample }.join, frame].join('_')
+    note = "ID=#{id}"
 
     if extra_data_keys.any?
       extra_data = extra_data_keys.select { |k| data[k] }.map { |k| "#{k}: #{data[k]}" }.join(', ')
       note += ";Note=#{extra_data}"
     end
 
-    [id, 'blast', 'gene', start, finish, '.', strand, frame, note].join("\t")
+    result = []
+
+    if show_extended
+      old_start = @unextended_data[keys[:start]]
+      old_finish = @unextended_data[keys[:finish]]
+      old_start, old_finish = [old_start, old_finish].sort
+
+      result << [contig_name, 'blast', 'gene', old_start, old_finish, '.', strand, frame, note]
+
+      [[start, old_start], [old_finish, finish]].each do |s, f|
+        new_id = SecureRandom.hex
+        new_note = "ID=#{new_id};Parent=#{id}"
+        result << [contig_name, 'blast', 'exon', s, f, '.', strand, frame, new_note]
+      end
+    else
+      result << [contig_name, 'blast', 'gene', start, finish, '.', strand, frame, note]
+    end
+
+    result.map { |r| r.join("\t") }.join("\n")
   end
 
   # everything should be in AA coords!
@@ -65,6 +85,11 @@ class BlastHit
 
     new_finish = data[keys[:finish]] + right_shift
     new_finish = data[keys[:len]] if new_finish > data[keys[:len]]
+
+    @extended = true
+    @unextended_data ||= {}
+    @unextended_data[keys[:start]] = data[keys[:start]]
+    @unextended_data[keys[:finish]] = data[keys[:finish]]
 
     data[keys[:start]] = new_start
     data[keys[:finish]] = new_finish
