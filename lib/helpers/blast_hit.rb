@@ -77,22 +77,26 @@ class BlastHit
     keys = detect_keys target
     opposite_keys = opposite_keys target
 
-    left_shift = data[opposite_keys[:start]]
-    right_shift = data[opposite_keys[:len]]-data[opposite_keys[:finish]]
+    left, right = [data[keys[:start]], data[keys[:finish]]].sort
+    op_left, op_right = [data[opposite_keys[:start]], data[opposite_keys[:finish]]].sort
+    op_len = data[opposite_keys[:len]]
 
-    new_start = data[keys[:start]] - left_shift
-    new_start = 1 if new_start < 1
+    left_shift = op_left
+    right_shift = op_len-op_right
 
-    new_finish = data[keys[:finish]] + right_shift
-    new_finish = data[keys[:len]] if new_finish > data[keys[:len]]
+    new_left = left - left_shift
+    new_left = 1 if new_left < 1
+
+    new_right = right + right_shift
+    new_right = data[keys[:len]] if right > data[keys[:len]]
 
     @extended = true
     @unextended_data ||= {}
     @unextended_data[keys[:start]] = data[keys[:start]]
     @unextended_data[keys[:finish]] = data[keys[:finish]]
 
-    data[keys[:start]] = new_start
-    data[keys[:finish]] = new_finish
+    data[keys[:start]] = data[keys[:start]] < data[keys[:finish]] ? new_left : new_right
+    data[keys[:finish]] = data[keys[:start]] < data[keys[:finish]] ? new_right : new_left
   end
 
   def back_translate_coords!(target)

@@ -15,13 +15,13 @@ annotator:
   # sl_mapping: 'tmp/p57_trimmed_sl_sorted_NODE_1.bed'
 
   ## Main settings
-  max_evalue: 0.0000000001
-  # max_evalue: 0.01
-  skip_preparation: true
+  # max_evalue: 0.0000000001
+  max_evalue: 0.00001
+  skip_preparation: false
   tmp_dir: 'tmp/annotator'
   blast_hit_target: 'subject'
   blast_hit_mode: 'genome'
-  clustering_max_distance: 64
+  clustering_max_distance: 16
   sl_mapping_clustering_max_distance: 5
   zoi_sl_searching_inner_threshold: 100
   zoi_sl_searching_outer_threshold: 10
