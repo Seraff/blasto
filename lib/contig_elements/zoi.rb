@@ -185,7 +185,7 @@ module ContigElements
 		def best_blast_hit
 			@best_blast_hit ||= begin
 				blast_hits.sort do |a, b|
-					[b.data.data[:evalue].to_f, a.data.data[:pident].to_f] <=> [a.data.data[:evalue].to_f, b.data.data[:pident].to_f]
+					[b.data.data[:evalue].to_f, a.data.data[:bitscore].to_f] <=> [a.data.data[:evalue].to_f, b.data.data[:bitscore].to_f]
 				end.last
 			end
 		end

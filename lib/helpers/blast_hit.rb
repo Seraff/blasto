@@ -159,6 +159,12 @@ class BlastHit
     @headers.map { |h| "#{data[h]}" }.join delimiter
   end
 
+  def organism(target)
+    org = data[detect_keys(target)[:id]]
+    return nil unless org.include?('|')
+    org.split('|').first
+  end
+
   protected
 
   def detect_reversed_coords(start, finish, len)

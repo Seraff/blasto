@@ -27,6 +27,14 @@ class Annotator
     end
   end
 
+  def count
+    @count ||= begin
+      cnt = @genome.count
+      @genome.rewind
+      cnt
+    end
+  end
+
   def annotate
     raise 'Blast hits must be prepared at first' unless hits_prepared
 
