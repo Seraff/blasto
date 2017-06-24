@@ -13,7 +13,7 @@ module ContigElements
 
 		attr_reader :contig, :direction, :frame,
 								:validation_error, :extra_data,
-								:gene_start, :gene_finish, :source_frame, :raw_gff
+								:gene_start, :gene_finish, :source_frame, :raw_gff, :local_frame
 
 		def initialize(contig, start, finish, raw_gff)
 			@contig = contig
@@ -131,17 +131,25 @@ module ContigElements
 			end
 		end
 
-		def local_frame
-			@local_frame ||= begin
-				frames = forward? ? [1, 2, 3] : [4, 5, 6]
+		def possible_frames
+			forward? ? [1, 2, 3] : [4, 5, 6]
+		end
 
-				indexes = frames.map { |f| aa_seq(f).index(START_CODON) }
-				min = indexes.compact.min
+		def possible_frame_indexes
+			@possible_frames ||= possible_frames.map { |f| [f, aa_seq(f).index(START_CODON)] }
+																					.keep_if { |e| not e[1].nil? }
+																					.to_h
+		end
 
-				if min
-					min_start_id = indexes.index(min)
-					frames[min_start_id]
-				end
+		def detect_local_frame
+			ids = possible_frame_indexes
+			min = ids.select { |k, v| v == ids.values.min }
+			@local_frame = min.keys.first
+			return unless @local_frame
+
+			unless in_bh_cluster_frame?
+				# loop by other frames
+				# if in bh cluster then break
 			end
 		end
 
