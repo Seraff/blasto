@@ -1,6 +1,8 @@
 require_relative './helpers.rb'
 
 class Clusterizer
+  FRAMES = (1..6).to_a
+
 	attr_accessor :max_distance, :input_path, :output_path
 	attr_reader :sorted, :clustered, :merged
 

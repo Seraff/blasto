@@ -6,8 +6,12 @@ module ContigElementCollections
 			@filtered = {}
 
 			normalize
-			merge_by_best_blast_hit
+			# merge_by_best_blast_hit # TODO?
 			filter_by_size
+			split_policistronic
+
+			# log_prepared_zois
+
 			filter_without_blaster
 			merge_duplicates
 			filter_totally_covered
@@ -79,6 +83,25 @@ module ContigElementCollections
 			@filtered[:short] = small
 
 			delete_if { |e| small.include? e }
+		end
+
+		def split_policistronic
+			splitted_zois = []
+			zois_for_delition = []
+
+			each do |e|
+				if e.polycistronic?
+					splitted_zois += e.split_by_polycistronic_cutting_places
+
+					@filtered[:multiple_blaster_groups] ||= []
+					@filtered[:multiple_blaster_groups] << e
+
+					zois_for_delition << e
+				end
+			end
+
+			push(*splitted_zois)
+			zois_for_delition.each { |z| delete(z) }
 		end
 
 		def filter_without_blaster
@@ -167,6 +190,14 @@ module ContigElementCollections
 	  			e.make_invalid! reason: reason
 	  			BadTranscriptsLogger.add_to_bin e
 	  		end
+	  	end
+	  end
+
+	  def log_prepared_zois
+	  	File.open('results/annotator/contigs/NODE_1_length_304652_cov_71.8364/prepared_zois.gff', 'w') do |f|
+		  	each do |z|
+		  		f.puts z.to_gff_as_is
+		  	end
 	  	end
 	  end
 	end

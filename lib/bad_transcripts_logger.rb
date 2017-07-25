@@ -53,7 +53,23 @@ class BadTranscriptsLogger
       end
 		end
 
+		def gather_all_clusters
+			clusters_filename = 'hit_clusters.gff'
+			full_clusters_path = Preparer.abs_path_for(clusters_filename)
+      full_clusters_path.rmtree if full_clusters_path.exist?
+
+      `touch #{full_clusters_path}`
+
+      Dir["#{Preparer.contigs_folder_path.to_s}/*"].each do |folder_name|
+        path = Preparer.contig_folder_path(folder_name, filename: clusters_filename)
+        next unless path.exist?
+
+        `cat #{path} | grep "^[^#;]" >> #{full_clusters_path}`
+      end
+		end
+
 		def print_reasons_stats
+			puts
 			path = Preparer.abs_path_for(TOTAL_STAT_FILENAME)
 			path.rmtree if path.exist?
 

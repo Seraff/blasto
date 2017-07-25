@@ -17,6 +17,22 @@ class BlastReader
       end
     end
 
+    def extend_borders!(target:, progress_bar: nil, output_path:nil)
+      if output_path
+        output_file = File.open(output_path, 'w')
+        output_file.puts headers.join(delimiter)
+      end
+
+      with_file_rewinded do
+        each_hit do |hit|
+          hit.back_translate_coords! target
+
+          output_file.puts hit.to_csv if output_file
+          progress_bar.increment if progress_bar
+        end
+      end
+    end
+
     def back_translate_to_gff(output_file, target:, mode:, progress_bar: nil, extend_borders: false)
       raise "Invalid target" unless %w(query subject).include?(target.to_s)
       raise "Invalid mode" unless %w(genome transcriptome).include?(mode.to_s)

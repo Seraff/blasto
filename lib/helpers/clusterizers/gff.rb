@@ -1,6 +1,5 @@
 module Clusterizers
   class Gff < Clusterizer
-    FRAMES = (1..6).to_a
     GFF_HEADER = '##gff-version 3'
 
     START_COL_ID = 3

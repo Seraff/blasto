@@ -79,7 +79,7 @@ class Contig
         reader.cache_hits
 
         elements = reader.hits.map do |h|
-          ContigElements::Basic.new self, h.start(target), h.finish(target), h
+          ContigElements::BlastHit.new self, h.start(target), h.finish(target), h
         end
       end
 
@@ -91,7 +91,7 @@ class Contig
     @blast_hit_clusters ||= begin
       elements = []
 
-      path = Preparer::hit_clusters_path(title)
+      path = Preparer::hit_clusters_gff_path(title)
 
       if path.exist?
         File.open(path, 'r').each do |line|
@@ -105,7 +105,8 @@ class Contig
           hits = blast_hits.select_intersected([start, finish])
           hits.keep_if { |h| h.data.detect_frame(target) == frame }
 
-          elements << ContigElements::Basic.new(self, start, finish, hits, extra_data: { frame: frame, forward: [1, 2, 3].include?(frame) })
+          extra_data = { frame: frame, forward: [1, 2, 3].include?(frame) }
+          elements << ContigElements::BlastHitCluster.new(self, start, finish, hits, extra_data: extra_data)
         end
       end
 
@@ -131,7 +132,7 @@ class Contig
   def sl_mappings
     @sl_mappings ||= begin
       elements = []
-      path = Preparer::sl_mapping_clusters_path(title)
+      path = Preparer::sl_mapping_path(title)
 
       if path.exist?
         File.open(path, 'r').each do |line|

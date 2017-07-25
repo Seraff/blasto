@@ -17,18 +17,22 @@ class Preparer
     create_tmp_folders
 
     back_translate
-    sort_by_target
-
     split_hits_by_contigs
+
+    clean_hits
+
+    keep_best_nonoverlapped_hits
+
+    extend_hits_borders
+
     split_transcripts_by_contigs
     split_sl_mapping_by_contigs
 
     remove_unnecessary_contigs
-    # clean_transcriptomes
-    clean_hits
+
+    clean_transcriptomes if Settings.annotator.clean_transcriptome
+
     make_gffs
-    cluster_hits
-    cluster_sl_mappings
   end
 
   def create_tmp_folders
@@ -53,7 +57,6 @@ class Preparer
     blast_reader.back_translate! output_path: Preparer.back_translated_path,
                                  target: target,
                                  progress_bar: pb
-                                 # extend_borders: true
 
     @hits_path = Preparer.back_translated_path
   end
@@ -69,7 +72,31 @@ class Preparer
   end
 
   def split_hits_by_contigs
+    sort_by_target
     split_csv_by_contigs @hits_path, CSV_HITS_FILENAME
+  end
+
+  def clean_hits
+    each_folder('Cleaning hits') do |folder|
+      hits_path = Preparer.hits_csv_path(folder)
+      next unless hits_path.exist?
+
+      reader = BlastReader.new(hits_path)
+      reader.cache_hits
+      reader.hits.keep_if { |h| h.data[:evalue].to_f < Settings.annotator.max_evalue }
+      reader.write_to_file
+    end
+  end
+
+  def keep_best_nonoverlapped_hits
+    each_folder('Selecting nonoverlapped best hits') do |folder|
+      hits_path = Preparer.hits_csv_path folder
+      next unless hits_path.exist?
+
+      Filterers::BestNonoverlappedBlastHits.new(hits_path, target: target).perform
+
+      `cp #{hits_path} #{Preparer.hit_clusters_csv_path(folder)}`
+    end
   end
 
   def split_transcripts_by_contigs
@@ -102,6 +129,7 @@ class Preparer
     end
   end
 
+  ## By size, by intersection, etc.
   def clean_transcriptomes
     each_folder('Cleaning transcriptomes') do |folder|
       cleaner = TranscriptomeCleaner.new folder, target: target
@@ -114,48 +142,11 @@ class Preparer
     end
   end
 
-  def clean_hits
-    each_folder('Cleaning hits') do |folder|
-      hits_path = Preparer.hits_csv_path(folder)
-      next unless hits_path.exist?
-
-      reader = BlastReader.new(hits_path)
-      reader.cache_hits
-      reader.hits.keep_if { |h| h.data[:evalue].to_f < Settings.annotator.max_evalue }
-      reader.write_to_file
-    end
-  end
-
   def make_gffs
     each_folder('Making gffs') do |folder|
       csv_to_gff Preparer.hits_csv_path(folder), Preparer.hits_gff_path(folder)
+      csv_to_gff Preparer.hit_clusters_csv_path(folder), Preparer.hit_clusters_gff_path(folder)
       csv_to_gff Preparer.transcripts_csv_path(folder), Preparer.transcripts_gff_path(folder)
-    end
-  end
-
-  def cluster_hits
-    each_folder('Clustering files') do |folder|
-      hits_path = Preparer.hits_gff_path folder
-      next unless hits_path.exist?
-
-      Clusterizers::Gff.new(input: hits_path,
-                            output: Preparer.hit_clusters_path(folder),
-                            max_distance: Settings.annotator.clustering_max_distance)
-                       .perform
-    end
-
-    true
-  end
-
-  def cluster_sl_mappings
-    each_folder('Making SL clusters') do |folder|
-      sl_mapping_path = Preparer.sl_mapping_path folder
-      next unless sl_mapping_path.exist?
-
-      Clusterizers::Bed.new(input: sl_mapping_path,
-                            output: Preparer.sl_mapping_clusters_path(folder),
-                            max_distance: Settings.annotator.sl_mapping_clustering_max_distance)
-                       .perform
     end
   end
 

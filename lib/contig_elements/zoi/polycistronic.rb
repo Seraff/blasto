@@ -1,21 +1,48 @@
 module ContigElements
 	class Zoi < ContigElement
 		module Polycistronic
+			class CuttingPlace
+				attr_accessor :coord, :sl
+
+				def initialize(coord, sl=nil)
+					@coord = coord
+					@sl = sl
+				end
+
+				def has_sl?
+					!@sl.nil?
+				end
+			end
+
 			def polycistronic?
+				polycistronic_cutting_places.any?
 			end
 
-			def multiple_blaster_groups?
-				polycistronic_sl_mappings.any?
+			def split_by_polycistronic_cutting_places
+				return false unless polycistronic?
+
+				new_zois = []
+				last_coord = start
+
+				# puts
+				# puts "#{contig.title}"
+				# puts "#{polycistronic_cutting_places.map{|a| [a.start, a.finish].join('-')}}, #{start} - #{finish}"
+
+				polycistronic_cutting_places.each do |place|
+					new_start = last_coord == start ? start : last_coord + 1
+					new_zois << get_subzoi(new_start, place.coord)
+
+					last_coord = place.coord
+				end
+
+				new_zois << get_subzoi(last_coord+1, finish)
+
+				new_zois
 			end
 
-			def split_by_polycistronic_sl_mappings
-				return false unless multiple_blaster_groups?
-				# TODO
-			end
-
-			def polycistronic_sl_mappings
-				@polycistronic_sl_mappings ||= begin
-					return [] if hit_clusters.count <= 1 || all_sl_mappings.empty?
+			def polycistronic_cutting_places
+				@polycistronic_cutting_places ||= begin
+					return [] if hit_clusters.count <= 1
 
 					groups = group_blasters_by_intersections
 					return [] if groups.count <= 1
@@ -23,7 +50,7 @@ module ContigElements
 					# ---[***]------[***]---
 					# ----------SL----------
 
-					sls_for_cutting = []
+					cutting_places = []
 
 					groups.each_with_index do |group, i|
 						next_group = groups[i+1]
@@ -32,12 +59,16 @@ module ContigElements
 						left = group.max { |e| e.finish }.finish - Settings.annotator.polycistronic_sl_threshold
 						right = next_group.min { |e| e.start }.start + Settings.annotator.polycistronic_sl_threshold
 
-						sls = all_sl_mappings.dup.select_intersected([left, right])
+						sl = all_sl_mappings.dup.select_intersected([left, right]).first
 
-						sls_for_cutting << sls.first if sls.any?
+						if sl
+							cutting_places << CuttingPlace.new((sl.start+sl.finish)/2, sl)
+						else
+							cutting_places << CuttingPlace.new((left+right)/2)
+						end
 					end
 
-					sls_for_cutting
+					cutting_places
 				end
 			end
 
@@ -71,6 +102,15 @@ module ContigElements
 			  groups << current_group
 
 			  groups
+			end
+
+			def get_subzoi(start_coord, finish_coord)
+				raise "Wrong coords (#{start_coord}, #{finish_coord})" if start_coord > finish_coord
+
+				start_coord = [start, start_coord].sort.last
+				finish_coord = [finish, finish_coord].sort.first
+
+				self.class.new(contig, start_coord, finish_coord, raw_gff)
 			end
 		end
 	end

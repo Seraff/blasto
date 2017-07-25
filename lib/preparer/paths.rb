@@ -8,10 +8,10 @@ class Preparer
     GFF_HITS_FILENAME = 'hits.gff'
     CSV_TRANSCRIPTS_FILENAME = 'transcripts.csv'
     GFF_TRANSCRIPTS_FILENAME = 'transcripts.gff'
-    CLUSTERS_FILENAME = 'hit_clusters.gff'
+    CSV_CLUSTERS_FILENAME = 'hit_clusters.csv'
+    GFF_CLUSTERS_FILENAME = 'hit_clusters.gff'
     TRANSCRIPTS_BIN_FILENAME = 'transcripts_bin.csv'
     SL_MAPPING_FILENAME = 'sl_mapping.bed'
-    SL_MAPPING_CLUSTERS_FILENAME = 'sl_mapping_clusters.bed'
 
     # global files
     BACK_TRANSLATED_HITS_FILENAME = 'hits_back_translated.csv'
@@ -55,8 +55,12 @@ class Preparer
         contig_folder_path folder, filename: GFF_HITS_FILENAME
       end
 
-      def hit_clusters_path(folder)
-        contig_folder_path folder, filename: CLUSTERS_FILENAME
+      def hit_clusters_csv_path(folder)
+        contig_folder_path folder, filename: CSV_CLUSTERS_FILENAME
+      end
+
+      def hit_clusters_gff_path(folder)
+        contig_folder_path folder, filename: GFF_CLUSTERS_FILENAME
       end
 
       def transcripts_csv_path(folder)
@@ -73,10 +77,6 @@ class Preparer
 
       def sl_mapping_path(folder)
         contig_folder_path folder, filename: SL_MAPPING_FILENAME
-      end
-
-      def sl_mapping_clusters_path(folder)
-        contig_folder_path folder, filename: SL_MAPPING_CLUSTERS_FILENAME
       end
     end
   end

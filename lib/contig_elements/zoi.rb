@@ -3,17 +3,24 @@ Dir["#{ROOT_PATH}/lib/contig_elements/zoi/*.rb"].each {|file| require file }
 module ContigElements
 	class Zoi < ContigElement
 		include Polycistronic
+		include Annotation
 
 		DIRECTIONS = ['+', '-'].freeze
 		FRAMES = (1..6).to_a.freeze
 		START_CODON = 'M'
 
 		VALID_COLOR = '#009900'
+		DEFECTIVE_COLOR = '#d1b204'
 		INVALID_COLOR = '#CC070E'
 
-		attr_reader :contig, :direction, :frame,
+		attr_reader :contig, :frame,
 								:validation_error, :extra_data,
 								:gene_start, :gene_finish, :source_frame, :raw_gff
+
+		# start - left border
+		# finish - right border
+		# gene_start - real start (left or right side, according to frame)
+		# gene_finish - real finish
 
 		def initialize(contig, start, finish, raw_gff)
 			@contig = contig
@@ -24,63 +31,10 @@ module ContigElements
 			@raw_gff = raw_gff
 
 			@validation_error = nil
+			@defection_reason = nil
+
 			@gene_start = nil
 			@gene_finish = nil
-		end
-
-		def annotate
-			aa_sequence = aa_seq(local_frame)
-
-			idx = aa_sequence.index(START_CODON)
-			@gene_start = forward? ? start+idx*3+local_frame-1 : finish-idx*3-local_frame+4
-
-			raise 'Wrong hit cluster' if hit_cluster.na_len%3 != 0
-			cluster_finish = forward? ? hit_cluster.finish : hit_cluster.start
-			threshold = (hit_cluster.na_len/(3*4))*3
-
-			if forward?
-				first_stop_border = cluster_finish - threshold + 1
-			else
-				first_stop_border = cluster_finish + threshold - 1
-			end
-
-			second_stop_border = forward? ? finish : start
-
-			first_stop_border, second_stop_border = [first_stop_border, second_stop_border].sort
-
-			stop_na_seq = Bio::Sequence::NA.new contig.seq[first_stop_border-1..second_stop_border-1]
-			stop_aa_seq = forward? ? stop_na_seq.translate(1) : stop_na_seq.translate(4)
-
-			hit_border = forward? ? first_stop_border : second_stop_border
-			closest_stop_idx = nil
-			closest_dist = nil
-			bbh_finish = forward? ? best_blast_hit.finish : best_blast_hit.start
-			stop_aa_seq.to_s.split('').each_with_index do |aa, i|
-				if aa == '*'
-					global_idx = forward? ? hit_border+i*3-1 : hit_border-i*3+1
-					dist = (global_idx - bbh_finish).abs
-
-					closest_stop_idx ||= i
-					closest_dist ||= dist
-
-					if dist < closest_dist
-						closest_dist = dist
-						closest_stop_idx = i
-					end
-				end
-			end
-
-			if closest_stop_idx.nil?
-				make_invalid! reason: :cannot_detect_stop
-				BadTranscriptsLogger.add_to_bin self
-				return false
-			end
-
-			@gene_finish = forward? ?
-										 first_stop_border+closest_stop_idx*3-1 :
-										 second_stop_border-closest_stop_idx*3+1
-
-			true
 		end
 
 		def annotated?
@@ -92,6 +46,10 @@ module ContigElements
 			@validation_error = reason if reason
 		end
 
+		def make_valid!
+			@valid = true
+		end
+
 		def valid?
 			if @valid.nil?
 				@valid = begin
@@ -100,11 +58,11 @@ module ContigElements
 					if hit_clusters.count > 1
 						@validation_error = :hit_clusters_more_than_one
 					elsif sl_mapping.nil?
-						@validation_error = :has_no_sl_mappings
-					elsif local_frame.nil?
-						@validation_error = :cannot_detect_frame
+						@defection_reason = :has_no_sl_mappings
+					elsif correct_local_frame.nil?
+						@defection_reason = :cannot_detect_frame
 					elsif !in_bh_cluster_frame?
-						@validation_error = :hit_cluster_has_another_frame
+						@defection_reason = :hit_cluster_has_another_frame
 					end
 
 					@validation_error.nil?
@@ -118,52 +76,8 @@ module ContigElements
 			!valid?
 		end
 
-		def forward?
-			direction == '+'
-		end
-
-		def direction
-			@direction ||= begin
-				middle = (sl_mapping.start+sl_mapping.finish)/2.0
-				start_dist = (start - middle).abs
-				finish_dist = (finish - middle).abs
-				start_dist <= finish_dist ? '+' : '-'
-			end
-		end
-
-		def local_frame
-			@local_frame ||= begin
-				frames = forward? ? [1, 2, 3] : [4, 5, 6]
-
-				indexes = frames.map { |f| aa_seq(f).index(START_CODON) }
-				min = indexes.compact.min
-
-				if min
-					min_start_id = indexes.index(min)
-					frames[min_start_id]
-				end
-			end
-		end
-
-		def global_frame
-			@global_frame ||= begin
-				left_idx = forward? ? start : finish
-
-				frame_mapping = {
-					'+' => {
-								 		0 => { 1 => 3, 2 => 1, 3 => 2 },
-								 		1 => { 1 => 1, 2 => 2, 3 => 3 },
-								 		2 => { 1 => 2, 2 => 3, 3 => 1 }
-								 },
-					'-' => {
-								 		0 => { 4 => 6, 5 => 4, 6 => 5 },
-								 		1 => { 4 => 5, 5 => 6, 6 => 4 },
-								 		2 => { 4 => 4, 5 => 5, 6 => 6 }
-								 }
-				}
-
-				frame_mapping[direction][left_idx%3][local_frame]
-			end
+		def defective?
+			valid? && !@defection_reason.nil?
 		end
 
 		def hit_clusters
@@ -183,11 +97,7 @@ module ContigElements
 		end
 
 		def best_blast_hit
-			@best_blast_hit ||= begin
-				blast_hits.sort do |a, b|
-					[b.data.data[:evalue].to_f, a.data.data[:bitscore].to_f] <=> [a.data.data[:evalue].to_f, b.data.data[:bitscore].to_f]
-				end.last
-			end
+			hit_cluster && hit_cluster.best_blast_hit
 		end
 
 		def sl_mappings
@@ -210,13 +120,23 @@ module ContigElements
 		end
 
 		def to_gff
-			color = valid? ? VALID_COLOR : INVALID_COLOR
+			color = if valid?
+								if defective?
+									DEFECTIVE_COLOR
+								else
+									VALID_COLOR
+								end
+							else
+							 INVALID_COLOR
+							end
+
 
 			if annotated?
 				left, right = [gene_start, gene_finish].sort
 				f = global_frame
 				d = direction
-				notes = "ID=#{SecureRandom.hex}"
+				notes = "ID=#{SecureRandom.hex}_bbh_frame_#{best_blast_hit.frame}_local_#{correct_local_frame}_global_#{correct_global_frame}"
+				notes += "_#{@defection_reason}" if defective?
 			else
 				left, right = [start, finish].sort
 				f = raw_gff_hash[:frame]
@@ -230,8 +150,31 @@ module ContigElements
 
 			notes += ";color=#{color}"
 
+			if valid?
+				if d == '+'
+					bbh_finish = best_blast_hit.finish
+					extended_bbh_finish = best_blast_hit.extended_finish
+				else
+					bbh_finish = best_blast_hit.start
+					extended_bbh_finish = best_blast_hit.extended_start
+				end
+
+				stop_distance = (gene_finish - bbh_finish).abs
+				extended_stop_distance = (gene_finish - extended_bbh_finish).abs
+
+				notes += ";distance_to_hit_finish=#{stop_distance}"
+				notes += ";distance_to_hit_extended_finish=#{extended_stop_distance}"
+				notes += ";bbh_evalue=#{best_blast_hit.data.data[:evalue]}"
+				notes += ";bbh_name=#{best_blast_hit.data.data[:qseqid]}"
+			end
+
 			f = [4,5,6].include?(f) ? (f - 4) : (f - 1)
 			[contig.title, :blast, :gene, left, right, '.', d, f, notes].join("\t")
+		end
+
+		def to_gff_as_is
+			left, right = [start, finish].sort
+			[contig.title, :blast, :gene, left, right, '.', '+', '1', 'yay'].join("\t")
 		end
 
 		def normalize!
@@ -258,7 +201,7 @@ module ContigElements
 		def in_bh_cluster_frame?
 			return false unless hit_cluster
 
-			hit_cluster.extra_data[:frame] == global_frame
+			hit_cluster.extra_data[:frame].to_i == correct_global_frame
 		end
 
 		def inner_threshold

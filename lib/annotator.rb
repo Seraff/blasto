@@ -46,8 +46,19 @@ class Annotator
 
     BadTranscriptsLogger.remove_old_logs
 
+    contigs_ids = Settings.annotator.contigs_for_annotating
+
     each_contig do |c|
+      next if contigs_ids && !contigs_ids.include?(c.title)
       c.annotate
+
+      # writing final clusters
+      # File.open(Preparer.abs_path_for(ContigElements::BlastHitCluster::FINAL_CLUSTERS_FILENAME), 'w') do |f|
+      #   c.blast_hit_clusters.each do |cluster|
+      #     f.puts cluster.to_gff
+      #   end
+      # end
+
       pb.increment
     end
 
@@ -55,5 +66,6 @@ class Annotator
     Contig.gather_full_annotation
 
     BadTranscriptsLogger.print_reasons_stats
+    puts "Annotated: " + `wc -l < #{Preparer.abs_path_for(Contig::ANNOTATION_FILENAME)}`
   end
 end
