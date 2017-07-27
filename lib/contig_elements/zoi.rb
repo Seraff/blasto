@@ -58,11 +58,11 @@ module ContigElements
 					if hit_clusters.count > 1
 						@validation_error = :hit_clusters_more_than_one
 					elsif sl_mapping.nil?
-						@defection_reason = :has_no_sl_mappings
+						@defection_reason ||= :has_no_sl_mappings
 					elsif correct_local_frame.nil?
-						@defection_reason = :cannot_detect_frame
+						@defection_reason ||= :cannot_detect_frame
 					elsif !in_bh_cluster_frame?
-						@defection_reason = :hit_cluster_has_another_frame
+						@defection_reason ||= :hit_cluster_has_another_frame
 					end
 
 					@validation_error.nil?
@@ -78,6 +78,10 @@ module ContigElements
 
 		def defective?
 			valid? && !@defection_reason.nil?
+		end
+
+		def make_defective!(reason:)
+			@defection_reason = reason
 		end
 
 		def hit_clusters
@@ -135,7 +139,7 @@ module ContigElements
 				left, right = [gene_start, gene_finish].sort
 				f = global_frame
 				d = direction
-				notes = "ID=#{SecureRandom.hex}_bbh_frame_#{best_blast_hit.frame}_local_#{correct_local_frame}_global_#{correct_global_frame}"
+				notes = "ID=#{SecureRandom.hex}"
 				notes += "_#{@defection_reason}" if defective?
 			else
 				left, right = [start, finish].sort

@@ -37,4 +37,6 @@ annotator:
 
   ## Developing
   # contigs_for_annotating:
-  #   - NODE_1_length_304652_cov_71.8364
+  #   - NODE_23_length_131853
+  #   - NODE_1501_length_797_cov_57.8585
+    # - NODE_307_length_21330

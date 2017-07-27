@@ -25,11 +25,15 @@ module ContigElements
     protected
 
     def cache_extended_borders
-      return if @extended_start && @extended_finish
+      return if @extended_start || @extended_finish
       data.extend_borders! contig.target
 
       @extended_start = data.start contig.target
       @extended_finish = data.finish contig.target
+
+      if @extended_start < 0 || @extended_finish < 0
+        raise 'Wrong extension in ' + self.inspect
+      end
 
       data.assign_attr_by_target(:start, start, contig.target)
       data.assign_attr_by_target(:finish, finish, contig.target)

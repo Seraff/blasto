@@ -2,14 +2,21 @@ module ContigElements
   class Zoi < ContigElement
     module Annotation
       def annotate
+        # Not recommended as it overrides the hard coded table
+        table = Bio::CodonTable[1]
+        table['tga'] = '^'
+        table['tag'] = '^'
+
         aa_sequence = aa_seq(local_frame)
 
         idx = aa_sequence.index(START_CODON)
+
         unless idx
           make_invalid! reason: :cannot_detect_start
           BadTranscriptsLogger.add_to_bin self
           return false
         end
+
         @gene_start = forward? ? start+idx*3+local_frame-1 : finish-idx*3-local_frame+4
 
         raise 'Wrong hit cluster' if best_blast_hit.na_len%3 != 0
@@ -115,7 +122,14 @@ module ContigElements
       end
 
       def defective_local_frame
-        @defective_local_frame ||= [1,2,3].include?(defective_global_frame) ? 1 : 4
+        @defective_local_frame ||= begin
+          # detection by best blast hit
+          if defective_direction == '+'
+            (best_blast_hit.start-start)%3+1
+          else
+            (finish-best_blast_hit.finish)%3+4
+          end
+        end
       end
 
       def global_frame

@@ -110,7 +110,9 @@ module ContigElements
 				start_coord = [start, start_coord].sort.last
 				finish_coord = [finish, finish_coord].sort.first
 
-				self.class.new(contig, start_coord, finish_coord, raw_gff)
+				obj = self.class.new(contig, start_coord, finish_coord, raw_gff)
+				obj.make_defective! reason: :splitted
+				obj
 			end
 		end
 	end

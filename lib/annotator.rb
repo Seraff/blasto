@@ -21,8 +21,12 @@ class Annotator
     @hits_prepared = true
   end
 
-  def each_contig
+  def each_contig(prefixes: [])
     @genome.each do |fasta_format|
+      if prefixes.any?
+        next if prefixes.select { |pr| fasta_format.entry_id.start_with?(pr) }.empty?
+      end
+
       yield Contig.new(fasta_format)
     end
   end
@@ -46,10 +50,9 @@ class Annotator
 
     BadTranscriptsLogger.remove_old_logs
 
-    contigs_ids = Settings.annotator.contigs_for_annotating
+    contigs_ids = Settings.annotator.contigs_for_annotating || []
 
-    each_contig do |c|
-      next if contigs_ids && !contigs_ids.include?(c.title)
+    each_contig(prefixes: contigs_ids) do |c|
       c.annotate
 
       # writing final clusters
