@@ -8,8 +8,8 @@ class BlastReader
 
       with_file_rewinded do
         each_hit do |hit|
-          hit.extend_borders! target if extend_borders
           hit.back_translate_coords! target
+          hit.extend_borders! target if extend_borders
 
           output_file.puts hit.to_csv if output_file
           progress_bar.increment if progress_bar
@@ -39,8 +39,8 @@ class BlastReader
 
       with_file_rewinded do
         each_hit do |hit|
-          hit.extend_borders! target if extend_borders
           hit.back_translate_coords! target
+          hit.extend_borders! target if extend_borders
 
           gff = hit.to_gff target, extra_data_keys: [:evalue]
 

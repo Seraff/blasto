@@ -41,7 +41,12 @@ module Filterers
     protected
 
     def intersects_with?(first, second)
-      first = [first.attr_by_target(:start, @target), first.attr_by_target(:finish, @target)].sort
+      begin
+        first = [first.attr_by_target(:start, @target), first.attr_by_target(:finish, @target)].sort
+      rescue
+        puts [first.attr_by_target(:start, @target), first.attr_by_target(:finish, @target)].inspect
+        exit
+      end
       second = [second.attr_by_target(:start, @target), second.attr_by_target(:finish, @target)].sort
       IntervalsHelper.intersects? first[0]..first[1], second[0]..second[1]
     end

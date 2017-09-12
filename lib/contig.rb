@@ -7,15 +7,23 @@ class Contig
 
   class << self
     def gather_full_annotation
-      full_ann_path = Preparer.abs_path_for(ANNOTATION_FILENAME)
-      full_ann_path.rmtree if full_ann_path.exist?
-      `touch #{full_ann_path}`
+      gather_full_file(ANNOTATION_FILENAME)
+    end
+
+    def gather_full_clusters
+      gather_full_file(Preparer::Paths::GFF_CLUSTERS_FILENAME)
+    end
+
+    def gather_full_file(file_name)
+      full_path = Preparer.abs_path_for(file_name)
+      full_path.rmtree if full_path.exist?
+      `touch #{full_path}`
 
       Dir["#{Preparer.contigs_folder_path.to_s}/*"].each do |folder_name|
-        path = Preparer.contig_folder_path(folder_name) + Pathname.new(ANNOTATION_FILENAME)
+        path = Preparer.contig_folder_path(folder_name) + Pathname.new(file_name)
         next unless path.exist?
 
-        `cat #{path} >> #{full_ann_path}`
+        `cat #{path} | grep -v '#' >> #{full_path}`
       end
     end
   end

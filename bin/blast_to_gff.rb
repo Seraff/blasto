@@ -2,37 +2,43 @@
 require_relative 'lib.rb'
 
 mode_help = %q{
-        qseqid/sseqid must be in format: SEQID_length_<nucleotides count>[_optional_string]_<frame>
-        result seqid names are formed by the rules
-        genome mode (spades ids): SEQID_length_<nucleotides count>[_optional_string]
-        transcriptome mode (other ids) : SEQID
+        result seqid names are formed by the rules:
+        spades mode: SEQID_length_<nucleotides count>[_optional_string]
+        short mode:  SEQID
 
         Example:
-        seqid: NODE_1096_length_1211_cov_913.715_1
+        seqid:                NODE_1096_length_1211_cov_913.715_1
         cound of nucleotides: 1211
-        frame: 1
-        gff seqid (genome mode): NODE_1096_length_1211_cov_913.715
-        gff seqid (transcriptome mode): NODE_1096
+        frame:                1
+
+        gff seqid (spades mode): NODE_1096_length_1211_cov_913.715
+        gff seqid (short mode):  NODE_1096
+}
+
+banner = %q{
+  Convert blast hits file with amino acid coordinates to gff annotation with nucleotide indicies
+
+  seqid must contain nt length and frame: SEQID_length_<nucleotides count>[_optional_string]_<frame>
 }
 
 
 params = Slop.parse do |o|
-  o.banner = "Convert blast hits file with amino acid coordinates to gff annotation with nucleotide indicies\n"
-  o.string '-in', '(required) Input file.'
-  o.string '-out', 'Output GFF file.'
+  o.banner = ""
+  o.string '-in', '(required) Input file'
+  o.string '-out', 'Output GFF file (same name and folder as input by default)'
   o.string '-t', '--target', '(required) Source for generating gff file (query|subject)'
   o.bool '-b', '--back_translate', 'Back translate BLAST hit coordinates'
-  o.string '-m', '--mode', "Mode for input file parsing (genome|transcriptome, do nothig by default)\n #{mode_help}"
+  o.string '-m', '--mode', "Strategy for ouput seqid formatting (spades|short, do not change seqid by default)\n #{mode_help}"
   o.bool '--extend', 'Make an extended blast hits gff file'
-  o.bool '--show_extended', 'Show extended regions in .gff'
+  o.bool '--show_extended', 'Show extended regions in .gff (using intron/exon notation). Ignored if --extend option not provided.'
   o.bool '--merge', 'Merge close blast hits with the same query, subject and frame'
-  o.integer '--max_distance', 'Max distance between close hits for merging'
+  o.integer '--max_distance', 'Max distance between close hits for merging. Ignored if --merge option not provided.'
   o.on '-h', '--help', 'Print options' do
     puts o
     puts "\nBy default output file is saved near the input file\n"
     puts "Examples:"
     puts "\t./blast_to_gff.rb -in hits.csv -t subject - simple conversion"
-    puts "\t./blast_to_gff.rb -in hits.csv -out result.gff -t query -m transcriptome"
+    puts "\t./blast_to_gff.rb -in hits.csv -out result.gff -t query -m short"
     puts "\t./blast_to_gff.rb -in hits.csv --target subject"
     exit
   end
@@ -79,9 +85,9 @@ reader.each_hit do |hit|
 
   if params[:mode]
     case params[:mode].to_sym
-    when :genome
+    when :spades
       gff_array[0].gsub!(/_\d+\z/, '')
-    when :transcriptome
+    when :short
       gff_array[0].gsub!(/_length_.+/, '')
     end
   end

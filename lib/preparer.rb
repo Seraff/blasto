@@ -16,7 +16,7 @@ class Preparer
   def prepare!
     create_tmp_folders
 
-    back_translate
+    back_translate_and_extend
     split_hits_by_contigs
 
     clean_hits
@@ -49,14 +49,15 @@ class Preparer
     end
   end
 
-  def back_translate
+  def back_translate_and_extend
     blast_reader = BlastReader.new @hits_path
 
     pb = ProgressBar.create(title: 'Translating hits', starting_at: 0, total: blast_reader.hits_count)
 
     blast_reader.back_translate! output_path: Preparer.back_translated_path,
                                  target: target,
-                                 progress_bar: pb
+                                 progress_bar: pb,
+                                 extend_borders: true
 
     @hits_path = Preparer.back_translated_path
   end
