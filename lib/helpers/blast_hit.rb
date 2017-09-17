@@ -20,7 +20,7 @@ class BlastHit
     @extended = false
   end
 
-  def to_gff(target, extra_data_keys: [], show_extended: false)
+  def to_gff(target, extra_data_keys: [], show_extended: false, show_merged: false)
     keys = detect_keys target
 
     required_fields = [keys[:id], keys[:start], keys[:finish]]
@@ -67,6 +67,19 @@ class BlastHit
       end
     else
       result << [contig_name, 'blast', 'gene', start, finish, '.', strand, frame, note]
+    end
+
+    if show_merged
+      @merging_gaps ||= []
+      @merging_gaps.each do |s, f|
+        new_id = SecureRandom.hex
+        new_note = "ID=#{new_id};Parent=#{id}"
+        result << [contig_name, 'blast', 'exon', s, f, '.', strand, frame, new_note]
+      end
+
+      if @merging_gaps.any?
+        result[0][-1] += ';Color=#db0202'
+      end
     end
 
     result.map { |r| r.join("\t") }.join("\n")

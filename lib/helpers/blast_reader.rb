@@ -77,7 +77,13 @@ class BlastReader
   end
 
   def hits_count
-    @hits_count ||= `cat #{@file.path} | wc -l`.to_i - 1
+    @hits_count ||= begin
+      if hits_cached?
+        @hits.count
+      else
+        `cat #{@file.path} | wc -l`.to_i - 1
+      end
+    end
   end
 
   def rewind
@@ -128,6 +134,11 @@ class BlastReader
     headers.join(delimiter)
   end
 
+  def hits=(hits)
+    @hits_count = nil
+    @hits = hits
+  end
+
   protected
 
   def parse_headers
@@ -161,17 +172,5 @@ class BlastReader
   def prepare_filename(name)
     name = "#{Dir.pwd}/#{name}" if name[0] != '/'
     name
-  end
-
-  def merge_hit_group(hits, target:)
-    puts "Merging hits group: query #{hits.first.data[:qseqid]}, subject #{hits.first.data[:sseqid]}"
-    hit = hits.first
-    hits = hits[1..-1]
-
-    hits.each do |h|
-      hit.merge_with h, target: target
-    end
-
-    hit
   end
 end

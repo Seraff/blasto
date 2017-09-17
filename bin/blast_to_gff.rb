@@ -32,6 +32,7 @@ params = Slop.parse do |o|
   o.bool '--extend', 'Make an extended blast hits gff file'
   o.bool '--show_extended', 'Show extended regions in .gff (using intron/exon notation). Ignored if --extend option not provided.'
   o.bool '--merge', 'Merge close blast hits with the same query, subject and frame'
+  o.bool '--show_merged', 'Show merged hits in .gff (using intron/exon notation). Ignored if --extend option not provided.'
   o.integer '--max_distance', 'Max distance between close hits for merging. Ignored if --merge option not provided.'
   o.on '-h', '--help', 'Print options' do
     puts o
@@ -55,30 +56,30 @@ input_file_path = params[:in]
 output_file_path = params[:out] || change_path(params[:in], new_ext: 'gff')
 
 reader = BlastReader.new input_file_path
+reader.cache_hits
+
+if params[:back_translate]
+  reader.each_hit do |hit|
+    hit.back_translate_coords! params[:target]
+  end
+end
+
+puts
 
 if params[:merge]
-  merged_path = change_path params[:in], append: "merged_#{SecureRandom.hex}"
-  merged_file = File.open merged_path, 'w'
-
   pb = ProgressBar.create(title: 'Merging', starting_at: 0, total: reader.hits_count)
-  reader.merge_hits merged_file, target: params[:t], max_distance: params[:max_distance] || 256, progress_bar: pb
-  reader.close
-
-  reader = BlastReader.new merged_path
+  reader.merge_hits! target: params[:t], max_distance: params[:max_distance] || 256, progress_bar: pb
 end
 
 gff_file = File.open output_file_path, 'w'
 gff_file.puts "##gff-version 3"
 
-title = 'Converting'
-title += ' and back-translating' if params[:b]
-pb = ProgressBar.create(title: title, starting_at: 0, total: reader.hits_count)
+pb = ProgressBar.create(title: 'Converting', starting_at: 0, total: reader.hits_count)
 
 reader.each_hit do |hit|
-  hit.back_translate_coords! params[:target] if params[:b]
   hit.extend_borders! params[:target] if params[:extend]
 
-  gff = hit.to_gff params[:target], extra_data_keys: [:evalue], show_extended: params[:show_extended]
+  gff = hit.to_gff params[:target], extra_data_keys: [:evalue], show_extended: params[:show_extended], show_merged: params[:show_merged]
 
   # additional gff processing
   gff_array = gff.split("\t")
@@ -101,4 +102,3 @@ puts "Finished"
 
 gff_file.close
 reader.file.close
-File.delete(merged_file) if merged_file

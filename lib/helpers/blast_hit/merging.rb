@@ -18,7 +18,7 @@ class BlastHit
       d2 = distance_to_hit other_hit, target: target
 
       [d1, d2].min.to_f/[d1, d2].max.to_f <= threshold
-     end
+    end
 
     def merge_with(other_hit, target:)
       keys = detect_keys target
@@ -33,7 +33,14 @@ class BlastHit
         data[keys[:start]], data[keys[:finish]] = borders.first, borders.last
       end
 
+      @merging_gaps ||= []
+      @merging_gaps << borders[1..2]
+
       true
+    end
+
+    def merged?
+      @merging_gaps && @merging_gaps.any?
     end
 
     def distance_to_hit(other_hit, target:)
