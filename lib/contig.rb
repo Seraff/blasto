@@ -23,7 +23,7 @@ class Contig
         path = Preparer.contig_folder_path(folder_name) + Pathname.new(file_name)
         next unless path.exist?
 
-        `cat #{path} | grep -v '#' >> #{full_path}`
+        `cat #{path} | grep -v '^#' >> #{full_path}`
       end
     end
   end

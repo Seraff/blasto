@@ -19,7 +19,6 @@ module ContigElements
 
         @gene_start = forward? ? start+idx*3+local_frame-1 : finish-idx*3-local_frame+4
 
-        raise 'Wrong hit cluster' if best_blast_hit.na_len%3 != 0
         bbh_finish = forward? ? best_blast_hit.finish : best_blast_hit.start
         threshold = (best_blast_hit.na_len/(3*4))*3
 

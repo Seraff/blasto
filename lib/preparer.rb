@@ -23,8 +23,6 @@ class Preparer
 
     keep_best_nonoverlapped_hits
 
-    extend_hits_borders
-
     split_transcripts_by_contigs
     split_sl_mapping_by_contigs
 
@@ -64,11 +62,11 @@ class Preparer
 
   def sort_by_target
     blast_reader = BlastReader.new @hits_path
-    blast_reader.sort_by! target_hit_key, ouput_path: Preparer.sorted_by_target_path(:hits)
+    blast_reader.sort_by! [target_hit_key], ouput_path: Preparer.sorted_by_target_path(:hits)
     @hits_path = Preparer.sorted_by_target_path(:hits)
 
     blast_reader = BlastReader.new @transcriptome_path
-    blast_reader.sort_by! target_hit_key, ouput_path: Preparer.sorted_by_target_path(:transcripts)
+    blast_reader.sort_by! [target_hit_key], ouput_path: Preparer.sorted_by_target_path(:transcripts)
     @transcriptome_path = Preparer.sorted_by_target_path(:transcripts)
   end
 

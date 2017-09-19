@@ -121,8 +121,12 @@ class BlastHit
     finish = data[keys[:finish]]
 
     transposed_frame = [4,5,6].include?(frame) ? frame - 3 : frame
+
     new_start = 3*start+transposed_frame-3
+    new_start = 1 if new_start < 1
+
     new_finish = 3*finish+transposed_frame-1
+    new_finish = data[keys[:len]] if new_finish > data[keys[:len]]
 
     if [4,5,6].include? frame
       new_start, new_finish = detect_reversed_coords new_start, new_finish, nalen

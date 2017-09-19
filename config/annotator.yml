@@ -11,16 +11,16 @@ annotator:
     # sl_mapping: 'data/SL_trimmered/p57_trimmed_sl_sorted.bed'
   sl_mapping: 'data/SL_new/trans_splice_sites.bed'
 
-  # genome: 'tmp/DNA_scaffolds_NODE_1.fa'
+  genome: 'tmp/DNA_scaffolds_NODE_1.fa'
   # blast_hits: 'tmp/blast_hits_NODE_1.csv'
-  # blast_hits: 'tmp/blast_hits_NODE_1.csv'
-  # transcriptome: 'tmp/transcriptome_NODE_1.csv'
-  # sl_mapping: 'tmp/p57_trimmed_sl_sorted_NODE_1.bed'
+  blast_hits: 'tmp/blast_hits_NODE_1.csv'
+  transcriptome: 'tmp/transcriptome_NODE_1.csv'
+  sl_mapping: 'tmp/p57_trimmed_sl_sorted_NODE_1.bed'
 
   ## Main settings
   # max_evalue: 0.0000000001
   max_evalue: 0.00001
-  skip_preparation: true
+  skip_preparation: false
   tmp_dir: 'results/annotator'
   blast_hit_target: 'subject'
   blast_hit_mode: 'genome'
