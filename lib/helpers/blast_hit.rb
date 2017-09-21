@@ -82,6 +82,8 @@ class BlastHit
       end
     end
 
+    result[0][-1] += ";Evalue=#{data[:evalue]}"
+
     result.map { |r| r.join("\t") }.join("\n")
   end
 
@@ -101,7 +103,7 @@ class BlastHit
     new_left = 1 if new_left < 1
 
     new_right = right + right_shift
-    new_right = data[keys[:len]] if right > data[keys[:len]]
+    new_right = data[keys[:len]] if new_right > data[keys[:len]]
 
     @extended = true
     @unextended_data ||= {}
@@ -114,27 +116,27 @@ class BlastHit
 
   def back_translate_coords!(target)
     keys = detect_keys target
-
-    frame = detect_frame target
-    nalen = detect_nalen target
     start = data[keys[:start]]
     finish = data[keys[:finish]]
 
-    transposed_frame = [4,5,6].include?(frame) ? frame - 3 : frame
+    data[keys[:start]], data[keys[:finish]] = back_translate_coord_pair(target, start, finish)
+    data[keys[:len]] = detect_nalen target
 
-    new_start = 3*start+transposed_frame-3
-    new_start = 1 if new_start < 1
-
-    new_finish = 3*finish+transposed_frame-1
-    new_finish = data[keys[:len]] if new_finish > data[keys[:len]]
-
-    if [4,5,6].include? frame
-      new_start, new_finish = detect_reversed_coords new_start, new_finish, nalen
+    @unextended_data ||= {}
+    if @unextended_data.any?
+      unext_start = @unextended_data[keys[:start]]
+      unext_finish = @unextended_data[keys[:finish]]
+      unext_start, unext_finish = back_translate_coord_pair(target, unext_start, unext_finish)
+      @unextended_data[keys[:start]] = unext_start
+      @unextended_data[keys[:finish]] = unext_finish
     end
 
-    data[keys[:start]] = new_start
-    data[keys[:finish]] = new_finish
-    data[keys[:len]] = nalen
+    @merging_gaps ||= []
+    new_gaps = []
+    @merging_gaps.each do |gap|
+      new_gaps << back_translate_coord_pair(target, gap[0], gap[1])
+    end
+    @merging_gaps = new_gaps
   end
 
   def detect_keys(target)
@@ -182,7 +184,27 @@ class BlastHit
     org.split('|').first
   end
 
+  def evalue
+    @evalue ||= BigDecimal.new(data[:evalue].to_s)
+  end
+
   protected
+
+  def back_translate_coord_pair(target, a, b)
+    frame = detect_frame target
+    nalen = detect_nalen target
+
+    transposed_frame = [4,5,6].include?(frame) ? frame - 3 : frame
+
+    new_a = 3*a+transposed_frame-3
+    new_b = 3*b+transposed_frame-1
+
+    if [4,5,6].include? frame
+      new_a, new_b = detect_reversed_coords new_a, new_b, nalen
+    end
+
+    [new_a, new_b]
+  end
 
   def detect_reversed_coords(start, finish, len)
     [start, finish].map { |x| len+1-x }

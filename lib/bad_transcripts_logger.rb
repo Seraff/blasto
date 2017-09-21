@@ -3,7 +3,7 @@ class BadTranscriptsLogger
 	TOTAL_STAT_FILENAME = 'stats.txt'
 
 	REASONS = [
-							 :short,
+							 :short_transcript,
 							 :intersected,
 							 :merged,
 							 :totally_covered,
@@ -12,7 +12,8 @@ class BadTranscriptsLogger
 							 :cannot_detect_frame,
 							 :hit_cluster_has_another_frame,
 							 :no_hit_clusters,
-							 :cannot_detect_stop
+							 :cannot_detect_stop,
+							 :short_gene
 						]
 
 	class << self

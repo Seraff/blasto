@@ -8,7 +8,6 @@ module ContigElements
         table['tag'] = '^'
 
         aa_sequence = aa_seq(local_frame)
-
         idx = aa_sequence.index(START_CODON)
 
         unless idx
@@ -19,28 +18,23 @@ module ContigElements
 
         @gene_start = forward? ? start+idx*3+local_frame-1 : finish-idx*3-local_frame+4
 
-        bbh_finish = forward? ? best_blast_hit.finish : best_blast_hit.start
-        threshold = (best_blast_hit.na_len/(3*4))*3
-
-        if forward?
-          first_stop_border = bbh_finish - threshold + 1
-        else
-          first_stop_border = bbh_finish + threshold - 1
-        end
-
-        second_stop_border = forward? ? finish : start
+        first_stop_border = @gene_start
+        second_stop_border = forward? ? [finish, start].sort.last : [finish, start].sort.first
 
         first_stop_border, second_stop_border = [first_stop_border, second_stop_border].sort
 
         stop_na_seq = Bio::Sequence::NA.new contig.seq[first_stop_border-1..second_stop_border-1]
         stop_aa_seq = forward? ? stop_na_seq.translate(1) : stop_na_seq.translate(4)
+        raise 'Bad stop locus' if stop_aa_seq[0] != 'M'
 
         hit_border = forward? ? first_stop_border : second_stop_border
 
         closest_stop_idx = nil
         closest_dist = nil
 
-        bbh_finish = forward? ? best_blast_hit.finish : best_blast_hit.start
+        raise "Wrong hit cluster: #{best_blast_hit.data.data}" if best_blast_hit.na_len%3 != 0
+        bbh_borders = [best_blast_hit.extended_start, best_blast_hit.extended_finish].sort
+        bbh_finish = forward? ? bbh_borders[1] : bbh_borders[0]
 
         stop_aa_seq.to_s.split('').each_with_index do |aa, i|
           if aa == '*'
@@ -66,6 +60,21 @@ module ContigElements
         @gene_finish = forward? ?
                        first_stop_border+closest_stop_idx*3-1 :
                        second_stop_border-closest_stop_idx*3+1
+
+
+        if (@gene_finish - @gene_start).abs+1 < Settings.annotator.gene_min_size
+          make_invalid! reason: :short_gene
+          BadTranscriptsLogger.add_to_bin self
+          return false
+        end
+
+        # write_log_to_new_gff "results/annotator/contigs/#{contig.title}/a_test.gff",
+        #                      first_stop_border,
+        #                      second_stop_border,
+        #                      contig: contig.title,
+        #                      extra: { 'color' => '#e510ed' }
+
+        puts "Gene #{@raw_gff} (valid: #{@valid}, defective: #{@defection_reason}) has incorrect length [#{@gene_start}, #{@gene_finish}] (#{(@gene_finish-@gene_start).abs+1})" if ((@gene_finish-@gene_start).abs+1)%3 != 0
 
         true
       end
@@ -164,26 +173,6 @@ module ContigElements
         end
 
         frame
-      end
-
-      def local_frame_to_global_old(local, dir)
-        return nil unless local
-
-        left_idx = dir == '+' ? start : finish
-
-        frame_mapping = {
-          '+' => {
-                    0 => { 1 => 3, 2 => 1, 3 => 2 },
-                    1 => { 1 => 1, 2 => 2, 3 => 3 },
-                    2 => { 1 => 2, 2 => 3, 3 => 1 }
-                 },
-          '-' => {
-                    0 => { 4 => 6, 5 => 4, 6 => 5 },
-                    1 => { 4 => 5, 5 => 6, 6 => 4 },
-                    2 => { 4 => 4, 5 => 5, 6 => 6 }
-                 }
-        }
-        frame_mapping[dir][left_idx%3][local]
       end
 
       def has_no_correct_frames?

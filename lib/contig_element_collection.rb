@@ -16,6 +16,10 @@ class ContigElementCollection < Array
 		self.class.new result
 	end
 
+	def contig=(contig)
+		@contig = contig
+	end
+
 	def select_totally_covered
 		covered = self.class.new
 

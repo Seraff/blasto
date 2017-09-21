@@ -66,7 +66,7 @@ class Annotator
     end
 
     BadTranscriptsLogger.gather_full_log
-    Contig.gather_full_annotation
+    Contig.gather_full_annotation_files
 
     BadTranscriptsLogger.print_reasons_stats
     puts "Annotated: " + `wc -l < #{Preparer.abs_path_for(Contig::ANNOTATION_FILENAME)}`

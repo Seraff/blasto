@@ -35,7 +35,7 @@ module ContigElements
 					last_coord = place.coord
 				end
 
-				new_zois << get_subzoi(last_coord+1, finish)
+				new_zois << get_subzoi(last_coord+1, finish) if last_coord < finish
 
 				new_zois
 			end

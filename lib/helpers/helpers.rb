@@ -124,6 +124,7 @@ class Bio::Sequence::NA
 end
 
 def write_log_to_new_gff(path, start, stop, direction: '+', contig: nil, extra: {})
+  `touch #{path}` unless Pathname.new(path).exist?
   contig ||= 'NODE_1_length_304652_cov_71.8364'
   extra['ID'] ||= SecureRandom.hex
   notes = extra.to_a.map{|e| e.join('=') }.join(';')

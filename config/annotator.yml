@@ -3,23 +3,19 @@ annotator:
   genome_reads: 'data/datasets/p57_RNA_to_DNA/p57_bw2_sorted.bam'
 
   genome: 'data/DNA_scaffolds.fa'
-    # blast_hits: 'data/kinetoplastid_proteoms_bl_report_frames_extracted.csv'
-    # blast_hits: 'data/kinetoplastid_proteoms_bl_report_BEST_frames_extracted.csv'
   blast_hits: 'data/prepared_hits/all_blast_hits_best_frames_extracted.csv'
-    # transcriptome: 'data/jaccard_Trinity.fasta_bl_report_best.csv'
+  # blast_hits: 'data/prepared_hits/all_blast_hits_frames_extracted.csv'
+  blast_hits: 'data/prepared_hits/all_blast_hits_frames_extracted_NODE_1.csv'
   transcriptome: 'data/stringtie_transcripts_prepared.csv'
-    # sl_mapping: 'data/SL_trimmered/p57_trimmed_sl_sorted.bed'
+  # transcriptome: 'tmp/tst_extend/transcriptome.csv'
   sl_mapping: 'data/SL_new/trans_splice_sites.bed'
 
-  genome: 'tmp/DNA_scaffolds_NODE_1.fa'
+  # genome: 'tmp/DNA_scaffolds_NODE_1.fa'
   # blast_hits: 'tmp/blast_hits_NODE_1.csv'
-  blast_hits: 'tmp/blast_hits_NODE_1.csv'
-  transcriptome: 'tmp/transcriptome_NODE_1.csv'
-  sl_mapping: 'tmp/p57_trimmed_sl_sorted_NODE_1.bed'
+  # sl_mapping: 'tmp/p57_trimmed_sl_sorted_NODE_1.bed'
 
   ## Main settings
-  # max_evalue: 0.0000000001
-  max_evalue: 0.00001
+  max_evalue: 0.001
   skip_preparation: false
   tmp_dir: 'results/annotator'
   blast_hit_target: 'subject'
@@ -35,8 +31,12 @@ annotator:
   ## Transcriptome filtering
   transcriptome_min_size: 100
 
+  gene_min_size: 150 # in na
+
   ## Developing
   # contigs_for_annotating:
-  #   - NODE_23_length_131853
+  #   - NODE_33_length_117867_cov_90.1447
+    # - NODE_1_length_304652_cov_71.8364
+  #   - NODE_12_length_169590_cov_53.9521
   #   - NODE_1501_length_797_cov_57.8585
     # - NODE_307_length_21330

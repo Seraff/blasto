@@ -6,11 +6,10 @@ module ContigElementCollections
 			@filtered = {}
 
 			normalize
-			# merge_by_best_blast_hit # TODO?
 			filter_by_size
 			split_policistronic
 
-			# log_prepared_zois
+			log_prepared
 
 			filter_without_blaster
 			merge_duplicates
@@ -193,12 +192,14 @@ module ContigElementCollections
 	  	end
 	  end
 
-	  def log_prepared_zois
-	  	File.open('results/annotator/contigs/NODE_1_length_304652_cov_71.8364/prepared_zois.gff', 'w') do |f|
-		  	each do |z|
-		  		f.puts z.to_gff_as_is
-		  	end
-	  	end
+	  def log_prepared
+			return unless Preparer.contig_folder_path(@contig.title).exist?
+
+			File.open(Preparer.contig_folder_path(@contig.title, filename: 'prepared_zois.gff'), 'w') do |f|
+				each do |z|
+					f.puts z.to_gff_as_is
+				end
+			end
 	  end
 	end
 end

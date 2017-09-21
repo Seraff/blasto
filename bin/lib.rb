@@ -2,6 +2,7 @@ require 'rubygems'
 require 'bundler/setup'
 require 'json'
 require 'securerandom'
+require 'bigdecimal'
 
 Bundler.require
 

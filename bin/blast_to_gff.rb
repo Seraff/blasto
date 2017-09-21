@@ -33,7 +33,7 @@ params = Slop.parse do |o|
   o.bool '--show_extended', 'Show extended regions in .gff (using intron/exon notation). Ignored if --extend option not provided.'
   o.bool '--merge', 'Merge close blast hits with the same query, subject and frame'
   o.bool '--show_merged', 'Show merged hits in .gff (using intron/exon notation). Ignored if --extend option not provided.'
-  o.integer '--max_distance', 'Max distance between close hits for merging. Ignored if --merge option not provided.'
+  o.integer '--max_distance', 'Max distance between close hits for merging (in na or aa, depending on the source file). Ignored if --merge option not provided. '
   o.on '-h', '--help', 'Print options' do
     puts o
     puts "\nBy default output file is saved near the input file\n"
@@ -58,47 +58,48 @@ output_file_path = params[:out] || change_path(params[:in], new_ext: 'gff')
 reader = BlastReader.new input_file_path
 reader.cache_hits
 
-if params[:back_translate]
-  reader.each_hit do |hit|
-    hit.back_translate_coords! params[:target]
-  end
-end
-
-puts
-
 if params[:merge]
   pb = ProgressBar.create(title: 'Merging', starting_at: 0, total: reader.hits_count)
-  reader.merge_hits! target: params[:t], max_distance: params[:max_distance] || 256, progress_bar: pb
+  default_max_distance = params[:back_translate] ? 85 : 256
+  reader.merge_hits! target: params[:t], max_distance: params[:max_distance] || default_max_distance, progress_bar: pb
 end
 
-gff_file = File.open output_file_path, 'w'
-gff_file.puts "##gff-version 3"
+if params[:extend]
+  pb = ProgressBar.create(title: 'Extending', starting_at: 0, total: reader.hits_count)
+  reader.extend_borders! target: params[:target], progress_bar: pb
+end
 
-pb = ProgressBar.create(title: 'Converting', starting_at: 0, total: reader.hits_count)
-
-reader.each_hit do |hit|
-  hit.extend_borders! params[:target] if params[:extend]
-
-  gff = hit.to_gff params[:target], extra_data_keys: [:evalue], show_extended: params[:show_extended], show_merged: params[:show_merged]
-
-  # additional gff processing
-  gff_array = gff.split("\t")
-
-  if params[:mode]
-    case params[:mode].to_sym
-    when :spades
-      gff_array[0].gsub!(/_\d+\z/, '')
-    when :short
-      gff_array[0].gsub!(/_length_.+/, '')
-    end
+if params[:back_translate]
+  pb = ProgressBar.create(title: 'Back translating', starting_at: 0, total: reader.hits_count)
+  reader.each_hit do |hit|
+    hit.back_translate_coords! params[:target]
+    pb.increment
   end
-
-  gff_file.puts gff_array.join("\t")
-
-  pb.increment
 end
 
-puts "Finished"
+File.open(output_file_path, 'w') do |f|
+  pb = ProgressBar.create(title: 'Writing to file', starting_at: 0, total: reader.hits_count)
+  f.puts "##gff-version 3"
 
-gff_file.close
-reader.file.close
+  reader.each_hit do |hit|
+    show_extended = params[:extend] ? params[:show_extended] : false
+    show_merged = params[:merge] ? params[:show_merged] : false
+
+    gff = hit.to_gff params[:target], extra_data_keys: [:evalue], show_extended: show_extended, show_merged: show_merged
+    gff_array = gff.split("\t")
+
+    if params[:mode]
+      case params[:mode].to_sym
+      when :spades
+        gff_array[0].gsub!(/_\d+\z/, '')
+      when :short
+        gff_array[0].gsub!(/_length_.+/, '')
+      end
+    end
+
+    f.puts gff_array.join("\t")
+    pb.increment
+  end
+end
+
+reader.close

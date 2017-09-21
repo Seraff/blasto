@@ -1,6 +1,5 @@
 class BlastHit
   module Merging
-
     def needs_to_merge_with?(other_hit, target:, max_distance:)
       opposite_target = opposite_target(target)
       opposite_keys = opposite_keys target
@@ -44,6 +43,7 @@ class BlastHit
       borders = (borders(opposite_target) + other_hit.borders(opposite_target)).sort
       start, finish = borders(opposite_target)
       data[opposite_keys[:start]], data[opposite_keys[:finish]] = start > finish ? [borders.last, borders.first] : [borders.first, borders.last]
+      data[:evalue] = other_hit.data[:evalue] if evalue > other_hit.evalue
 
       true
     end

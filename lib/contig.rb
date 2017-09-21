@@ -6,12 +6,10 @@ class Contig
   ANNOTATION_FILENAME = 'annotation.gff'
 
   class << self
-    def gather_full_annotation
+    def gather_full_annotation_files
       gather_full_file(ANNOTATION_FILENAME)
-    end
-
-    def gather_full_clusters
       gather_full_file(Preparer::Paths::GFF_CLUSTERS_FILENAME)
+      gather_full_file(Preparer::Paths::GFF_CLUSTERS_EXTENDED_FILENAME)
     end
 
     def gather_full_file(file_name)
@@ -175,7 +173,9 @@ class Contig
         end
       end
 
-      ContigElementCollections::Zoi.new(elements).prepare
+      zoi = ContigElementCollections::Zoi.new(elements)
+      zoi.contig = self
+      zoi.prepare
     end
   end
 

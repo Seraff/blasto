@@ -42,7 +42,7 @@ class TranscriptomeCleaner
       result
     end
 
-    BadTranscriptsLogger.add_hit_collection_to_bin(folder, hits: short_hits, reason: :short)
+    BadTranscriptsLogger.add_hit_collection_to_bin(folder, hits: short_hits, reason: :short_transcript)
   end
 
   def filter_by_intersections

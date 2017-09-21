@@ -1,27 +1,22 @@
 class BlastReader
   module Utils
-    def back_translate!(target:, extend_borders: false, progress_bar: nil, output_path: nil)
-      if output_path
-        output_file = File.open(output_path, 'w')
-        output_file.puts headers.join(delimiter)
-      end
-
-      with_file_rewinded do
-        each_hit do |hit|
-          hit.extend_borders! target if extend_borders
-          hit.back_translate_coords! target
-
-          output_file.puts hit.to_csv if output_file
-          progress_bar.increment if progress_bar
-        end
+    def back_translate!(target:, progress_bar: nil, output_path: nil)
+      perform_with_each_hit(progress_bar: progress_bar, output_path: output_path) do |hit|
+        hit.back_translate_coords! target
       end
     end
 
-    def merge_hits!(target:, output_file: nil, max_distance: 128, progress_bar: nil)
-      cache_hits unless hits_cached?
-      prefix = target.to_s[0] # 'q' or 's'
+    def extend_borders!(target:, progress_bar: nil, output_path: nil)
+      perform_with_each_hit(progress_bar: progress_bar, output_path: output_path) do |hit|
+        hit.extend_borders! target
+      end
+    end
 
+    def merge_hits!(target:, output_path: nil, max_distance: 256, progress_bar: nil)
+      prefix = target.to_s[0] # 'q' or 's'
       sort_by! qseqid: :string, sseqid: :string, "#{prefix}frame" => :digit, "#{prefix}start" => :digit
+
+      cache_hits unless hits_cached?
 
       merged_hits = []
       merging_group = []
@@ -50,7 +45,8 @@ class BlastReader
 
       self.hits = merged_hits
 
-      if output_file
+      if output_path
+        output_file = File.open(output_path, 'w')
         output_file.puts headers.join(delimiter)
 
         merged_hits.each do |hit|
@@ -90,6 +86,26 @@ class BlastReader
 
         reopen ouput_path
       end
+    end
+
+    protected
+
+    def perform_with_each_hit(progress_bar: nil, output_path: nil)
+      if output_path
+        output_file = File.open(output_path, 'w')
+        output_file.puts headers.join(delimiter)
+      end
+
+      with_file_rewinded do
+        each_hit do |hit|
+          yield hit
+
+          output_file.puts hit.to_csv if output_file
+          progress_bar.increment if progress_bar
+        end
+      end
+
+      output_file.close if output_path
     end
   end
 end
