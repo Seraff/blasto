@@ -1,10 +1,12 @@
 require_relative './blast_hit_data.rb'
 require_relative './blast_hit/merging.rb'
 require_relative './blast_hit/accessors.rb'
+require_relative './blast_hit/gff.rb'
 
 class BlastHit
   include Merging
   include Accessors
+  include Gff
 
   TARGET_KEYS = {
     query:   { id: :qseqid, start: :qstart, finish: :qend, opposite_id: :sseqid, frame: :qframe, len: :qlen },
@@ -20,71 +22,22 @@ class BlastHit
     @extended = false
   end
 
-  def to_gff(target, extra_data_keys: [], show_extended: false, show_merged: false)
-    keys = detect_keys target
+  def merging_gaps
+    @merging_gaps ||= []
+    @merging_gaps
+  end
 
-    required_fields = [keys[:id], keys[:start], keys[:finish]]
-    required_fields.each do |f|
-      raise 'Cannot convert: not enough fields' unless data.key?(f)
-    end
+  def merged?
+    merging_gaps.any?
+  end
 
-    start = data[keys[:start]]
-    finish = data[keys[:finish]]
+  def unextended_data
+    @unextended_data ||= {}
+    @unextended_data
+  end
 
-    strand = '+'
-    if start > finish
-      strand = '-'
-      tmp = start
-      start = finish
-      finish = tmp
-    end
-
-    contig_name = data[keys[:id]]
-    start = 1 if start.zero?
-    frame = detect_frame target
-
-    id = [data[keys[:opposite_id]], (1..16).to_a.map { (0..9).to_a.sample }.join, frame].join('_')
-    note = "ID=#{id}"
-
-    if extra_data_keys.any?
-      extra_data = extra_data_keys.select { |k| data[k] }.map { |k| "#{k}: #{data[k]}" }.join(', ')
-      note += ";Note=#{extra_data}"
-    end
-
-    result = []
-
-    if show_extended
-      old_start = @unextended_data[keys[:start]]
-      old_finish = @unextended_data[keys[:finish]]
-      old_start, old_finish = [old_start, old_finish].sort
-
-      result << [contig_name, 'blast', 'gene', old_start, old_finish, '.', strand, frame, note]
-
-      [[start, old_start], [old_finish, finish]].each do |s, f|
-        new_id = SecureRandom.hex
-        new_note = "ID=#{new_id};Parent=#{id}"
-        result << [contig_name, 'blast', 'exon', s, f, '.', strand, frame, new_note]
-      end
-    else
-      result << [contig_name, 'blast', 'gene', start, finish, '.', strand, frame, note]
-    end
-
-    if show_merged
-      @merging_gaps ||= []
-      @merging_gaps.each do |s, f|
-        new_id = SecureRandom.hex
-        new_note = "ID=#{new_id};Parent=#{id}"
-        result << [contig_name, 'blast', 'exon', s, f, '.', strand, frame, new_note]
-      end
-
-      if @merging_gaps.any?
-        result[0][-1] += ';Color=#db0202'
-      end
-    end
-
-    result[0][-1] += ";Evalue=#{data[:evalue]}"
-
-    result.map { |r| r.join("\t") }.join("\n")
+  def extended?
+    unextended_data.any?
   end
 
   # everything should be in AA coords!

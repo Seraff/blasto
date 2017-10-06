@@ -24,10 +24,6 @@ module ContigElements
 				new_zois = []
 				last_coord = start
 
-				# puts
-				# puts "#{contig.title}"
-				# puts "#{polycistronic_cutting_places.map{|a| [a.start, a.finish].join('-')}}, #{start} - #{finish}"
-
 				polycistronic_cutting_places.each do |place|
 					new_start = last_coord == start ? start : last_coord + 1
 					new_zois << get_subzoi(new_start, place.coord)
@@ -56,8 +52,8 @@ module ContigElements
 						next_group = groups[i+1]
 						break if next_group.nil?
 
-						left = group.max { |e| e.finish }.finish - Settings.annotator.polycistronic_sl_threshold
-						right = next_group.min { |e| e.start }.start + Settings.annotator.polycistronic_sl_threshold
+						left = group.max { |e| e.finish }.finish# - Settings.annotator.polycistronic_sl_threshold
+						right = next_group.min { |e| e.start }.start# + Settings.annotator.polycistronic_sl_threshold
 
 						sl = all_sl_mappings.dup.select_intersected([left, right]).first
 

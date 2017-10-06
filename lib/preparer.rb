@@ -62,6 +62,16 @@ class Preparer
       reader.merge_hits! output_path: output_path,
                          target: target,
                          max_distance: 512
+
+      merged_only_path = Preparer.contig_folder_path folder, filename: 'hits_only_merged.gff'
+      File.open(merged_only_path, 'w') do |f|
+        reader.each_hit do |hit|
+          next unless hit.merged?
+          hit.back_translate_coords! target
+          f.puts hit.to_gff(target, show_merged: true)
+        end
+      end
+
       reader.close
     end
   end
