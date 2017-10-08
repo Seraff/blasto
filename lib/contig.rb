@@ -8,8 +8,10 @@ class Contig
   class << self
     def gather_full_annotation_files
       gather_full_file(ANNOTATION_FILENAME)
-      gather_full_file(Preparer::Paths::GFF_CLUSTERS_FILENAME)
-      gather_full_file(Preparer::Paths::GFF_CLUSTERS_EXTENDED_FILENAME)
+      gather_full_file(Preparer::PATHS[:clusters_gff])
+      gather_full_file(Preparer::PATHS[:clusters_extended_gff])
+      gather_full_file(Preparer::PATHS[:merged_nonoverlapped_hits_gff])
+      gather_full_file('prepared_zois.gff')
     end
 
     def gather_full_file(file_name)
@@ -42,6 +44,12 @@ class Contig
 
   def aa_seq(frame)
     seq.translate frame
+  end
+
+  def aa_subseq(na_left, na_right, forward: false)
+    return [] if na_left > na_right
+    na_seq = Bio::Sequence::NA.new seq[na_left-1..na_right-1]
+    forward ? na_seq.translate(1) : na_seq.translate(4)
   end
 
   def title
@@ -97,7 +105,7 @@ class Contig
     @blast_hit_clusters ||= begin
       elements = []
 
-      path = Preparer::hit_clusters_gff_path(title)
+      path = Preparer::clusters_gff_path(title)
 
       if path.exist?
         File.open(path, 'r').each do |line|
@@ -145,7 +153,7 @@ class Contig
           next if line.start_with? '#'
 
           splitted = line.split "\t"
-          start = splitted[1].to_i
+          start = splitted[1].to_i+1
           finish = splitted[2].to_i
           elements << ContigElements::Basic.new(self, start, finish, nil)
         end
@@ -168,6 +176,7 @@ class Contig
           splitted = line.split "\t"
           start = splitted[3].to_i
           finish = splitted[4].to_i
+          start, finish = [start, finish].sort
 
           elements << ContigElements::Zoi.new(self, start, finish, line)
         end

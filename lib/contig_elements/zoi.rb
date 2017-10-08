@@ -120,7 +120,10 @@ module ContigElements
 		end
 
 		def sl_mapping
-			sl_mappings.first
+			@sl_mapping ||= begin
+				center_coord = (start+finish)/2
+				sl_mappings.sort_by { |e| (e.start-center_coord).abs }.first
+			end
 		end
 
 		def to_gff
@@ -209,11 +212,11 @@ module ContigElements
 		end
 
 		def inner_threshold
-			Settings.annotator.zoi_sl_searching_inner_threshold.to_i
+			na_len * Settings.annotator.zoi_sl_searching_inner_multiplier.to_f
 		end
 
 		def outer_threshold
-			Settings.annotator.zoi_sl_searching_outer_threshold.to_i
+			Settings.annotator.zoi_sl_searching_outer_threshold.to_f
 		end
 	end
 end

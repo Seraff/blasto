@@ -10,7 +10,7 @@ class ContigElement
 	end
 
 	def seq
-		@seq ||= Bio::Sequence::NA.new contig.seq[(start-1)..(finish-1)]
+		Bio::Sequence::NA.new contig.seq[(start-1)..(finish-1)]
 	end
 
 	def aa_seq(frame)

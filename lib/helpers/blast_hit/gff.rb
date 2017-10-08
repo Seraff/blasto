@@ -65,11 +65,10 @@ class BlastHit
     end
 
     def gff_notes(target, extra_data_keys = [])
-      keys = detect_keys target
       notes = "ID=#{gff_id(target)}"
 
       if extra_data_keys.any?
-        extra_data = extra_data_keys.select { |k| data[k] }.map { |k| "#{k}=#{data[k]}" }.join(', ')
+        extra_data = extra_data_keys.select { |k| data[k] }.map { |k| "#{k}:#{data[k]}" }.join(', ')
         notes += ";Note=#{extra_data}"
       end
 

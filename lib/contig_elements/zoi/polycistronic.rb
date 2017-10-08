@@ -1,19 +1,6 @@
 module ContigElements
 	class Zoi < ContigElement
 		module Polycistronic
-			class CuttingPlace
-				attr_accessor :coord, :sl
-
-				def initialize(coord, sl=nil)
-					@coord = coord
-					@sl = sl
-				end
-
-				def has_sl?
-					!@sl.nil?
-				end
-			end
-
 			def polycistronic?
 				polycistronic_cutting_places.any?
 			end
@@ -24,11 +11,11 @@ module ContigElements
 				new_zois = []
 				last_coord = start
 
-				polycistronic_cutting_places.each do |place|
-					new_start = last_coord == start ? start : last_coord + 1
-					new_zois << get_subzoi(new_start, place.coord)
+				polycistronic_cutting_places.each do |coord|
+					new_start = last_coord == start ? start : last_coord+1
+					new_zois << get_subzoi(new_start, coord)
 
-					last_coord = place.coord
+					last_coord = coord
 				end
 
 				new_zois << get_subzoi(last_coord+1, finish) if last_coord < finish
@@ -58,9 +45,9 @@ module ContigElements
 						sl = all_sl_mappings.dup.select_intersected([left, right]).first
 
 						if sl
-							cutting_places << CuttingPlace.new((sl.start+sl.finish)/2, sl)
+							cutting_places << sl.start
 						else
-							cutting_places << CuttingPlace.new((left+right)/2)
+							cutting_places << (left+right)/2
 						end
 					end
 

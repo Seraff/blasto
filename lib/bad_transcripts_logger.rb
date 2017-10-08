@@ -84,7 +84,7 @@ class BadTranscriptsLogger
 				end
 
 				f.puts
-				f.puts "total: #{total_count}"
+				f.puts "invalid: #{total_count}"
 			end
 
 			puts `cat #{path}`

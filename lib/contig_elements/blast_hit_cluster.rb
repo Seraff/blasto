@@ -2,6 +2,15 @@ module ContigElements
   class BlastHitCluster < Basic
     FINAL_CLUSTERS_FILENAME = 'final_clusters.gff'
 
+    def initialize(contig, start, finish, data, extra_data: {})
+      super
+      if [1,2,3].include? extra_data[:frame]
+        @start, @finish = [start, finish].sort
+      else
+        @start, @finish = [start, finish].sort.reverse
+      end
+    end
+
     def blast_hits
       data
     end

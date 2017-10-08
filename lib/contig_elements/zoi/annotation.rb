@@ -19,13 +19,11 @@ module ContigElements
         @gene_start = forward? ? start+idx*3+local_frame-1 : finish-idx*3-local_frame+4
 
         first_stop_border = @gene_start
-        second_stop_border = forward? ? [finish, start].sort.last : [finish, start].sort.first
-
+        second_stop_border = forward? ? finish : start
         first_stop_border, second_stop_border = [first_stop_border, second_stop_border].sort
+        stop_aa_region = contig.aa_subseq(first_stop_border, second_stop_border, forward: forward?)
 
-        stop_na_seq = Bio::Sequence::NA.new contig.seq[first_stop_border-1..second_stop_border-1]
-        stop_aa_seq = forward? ? stop_na_seq.translate(1) : stop_na_seq.translate(4)
-        raise 'Bad stop locus' if stop_aa_seq[0] != 'M'
+        raise 'Bad stop locus' if stop_aa_region[0] != 'M'
 
         hit_border = forward? ? first_stop_border : second_stop_border
 
@@ -36,7 +34,7 @@ module ContigElements
         bbh_borders = [best_blast_hit.extended_start, best_blast_hit.extended_finish].sort
         bbh_finish = forward? ? bbh_borders[1] : bbh_borders[0]
 
-        stop_aa_seq.to_s.split('').each_with_index do |aa, i|
+        stop_aa_region.to_s.split('').each_with_index do |aa, i|
           if aa == '*'
             global_idx = forward? ? hit_border+i*3-1 : hit_border-i*3+1
             dist = (global_idx - bbh_finish).abs
@@ -68,15 +66,12 @@ module ContigElements
           return false
         end
 
-        # write_log_to_new_gff "results/annotator/contigs/#{contig.title}/a_test.gff",
-        #                      first_stop_border,
-        #                      second_stop_border,
-        #                      contig: contig.title,
-        #                      extra: { 'color' => '#e510ed' }
-
         puts "Gene #{@raw_gff} (valid: #{@valid}, defective: #{@defection_reason}) has incorrect length [#{@gene_start}, #{@gene_finish}] (#{(@gene_finish-@gene_start).abs+1})" if ((@gene_finish-@gene_start).abs+1)%3 != 0
 
         true
+      end
+
+      def find_stop(left_border, right_border, closest_point)
       end
 
       def forward?

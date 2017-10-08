@@ -16,13 +16,11 @@ annotator:
 
   ## Main settings
   max_evalue: 0.001
-  skip_preparation: false
+  skip_preparation: true
   tmp_dir: 'results/annotator'
   blast_hit_target: 'subject'
   blast_hit_mode: 'genome'
-  clustering_max_distance: 16
-  sl_mapping_clustering_max_distance: 5
-  zoi_sl_searching_inner_threshold: 100
+  zoi_sl_searching_inner_multiplier: 0.25 # inner_threshold = len * inner_multiplier
   zoi_sl_searching_outer_threshold: 10
   clean_transcriptome: false
 

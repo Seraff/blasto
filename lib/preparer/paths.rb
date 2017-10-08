@@ -3,21 +3,23 @@
 class Preparer
   module Paths
     SPLITTED_DATA_FOLDER = 'contigs'
-    # per-folder files
-    CSV_HITS_FILENAME = 'hits.csv'
-    GFF_HITS_FILENAME = 'hits.gff'
-    CSV_TRANSCRIPTS_FILENAME = 'transcripts.csv'
-    GFF_TRANSCRIPTS_FILENAME = 'transcripts.gff'
-    CSV_CLUSTERS_FILENAME = 'hit_clusters.csv'
-    GFF_CLUSTERS_FILENAME = 'hit_clusters.gff'
-    GFF_CLUSTERS_EXTENDED_FILENAME = 'hit_clusters_extended.gff'
-    TRANSCRIPTS_BIN_FILENAME = 'transcripts_bin.csv'
-    SL_MAPPING_FILENAME = 'sl_mapping.bed'
 
-    # global files
-    BACK_TRANSLATED_HITS_FILENAME = 'hits_back_translated.csv'
-    MERGED_HITS_FILENAME = 'hits_merged.csv'
-    EXTENDED_HITS_FILENAME = 'hits_extended.csv'
+    PATHS = {
+      hits_csv: 'hits.csv',
+      hits_gff: 'hits.gff',
+      transcripts_csv: 'transcripts.csv',
+      transcripts_gff: 'transcripts.gff',
+      clusters_csv: 'hit_clusters.csv',
+      clusters_gff: 'hit_clusters.gff',
+      clusters_extended_gff: 'hit_clusters_extended.gff',
+      transcripts_bin: 'transcripts_bin.csv',
+      sl_mapping: 'sl_mapping.bed',
+      back_translated_hits: 'hits_back_translated.csv',
+      after_merging_hits: 'hits_after_merging.csv',
+      merged_hits_gff: 'hits_merged.gff',
+      merged_nonoverlapped_hits_gff: 'hits_merged_nonoverlapped.gff',
+      extended_hits: 'hits_extended.csv'
+    }
 
     def self.included base
       base.extend ClassMethods
@@ -42,56 +44,14 @@ class Preparer
         path
       end
 
+      PATHS.each do |name, filename|
+        define_method("#{name}_path") do |folder|
+          contig_folder_path folder, filename: filename
+        end
+      end
+
       def sorted_by_target_path(what)
         abs_path_for "#{what}_sorted_by_target.csv"
-      end
-
-      def back_translated_hits_path(folder)
-        contig_folder_path folder, filename: BACK_TRANSLATED_HITS_FILENAME
-      end
-
-      def merged_hits_path(folder)
-        contig_folder_path folder, filename: MERGED_HITS_FILENAME
-      end
-
-      def extended_hits_path(folder)
-        contig_folder_path folder, filename: EXTENDED_HITS_FILENAME
-      end
-
-      def hits_csv_path(folder)
-        contig_folder_path folder, filename: CSV_HITS_FILENAME
-      end
-
-      def hits_gff_path(folder)
-        contig_folder_path folder, filename: GFF_HITS_FILENAME
-      end
-
-      def hit_clusters_csv_path(folder)
-        contig_folder_path folder, filename: CSV_CLUSTERS_FILENAME
-      end
-
-      def hit_clusters_gff_path(folder)
-        contig_folder_path folder, filename: GFF_CLUSTERS_FILENAME
-      end
-
-      def hit_clusters_extended_gff_path(folder)
-        contig_folder_path folder, filename: GFF_CLUSTERS_EXTENDED_FILENAME
-      end
-
-      def transcripts_csv_path(folder)
-        contig_folder_path folder, filename: CSV_TRANSCRIPTS_FILENAME
-      end
-
-      def transcripts_gff_path(folder)
-        contig_folder_path folder, filename: GFF_TRANSCRIPTS_FILENAME
-      end
-
-      def transcripts_bin_path(folder)
-        contig_folder_path folder, filename: TRANSCRIPTS_BIN_FILENAME
-      end
-
-      def sl_mapping_path(folder)
-        contig_folder_path folder, filename: SL_MAPPING_FILENAME
       end
     end
   end

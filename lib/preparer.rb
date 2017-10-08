@@ -18,10 +18,10 @@ class Preparer
 
     split_hits_by_contigs
     merge_hits
-    # extend_hits
     back_translate_hits
     clean_hits
     keep_best_nonoverlapped_hits
+    save_merged_nonoverlapped_hits
 
     split_transcripts_by_contigs
     split_sl_mapping_by_contigs
@@ -49,13 +49,13 @@ class Preparer
 
   def split_hits_by_contigs
     sort_by_target
-    split_csv_by_contigs @hits_path, CSV_HITS_FILENAME
+    split_csv_by_contigs @hits_path, PATHS[:hits_csv]
   end
 
   def merge_hits
     each_folder('Merging hits') do |folder|
       hits_path = Preparer.hits_csv_path(folder)
-      output_path = Preparer.merged_hits_path(folder)
+      output_path = Preparer.after_merging_hits_path(folder)
       next unless hits_path.exist?
 
       reader = BlastReader.new hits_path
@@ -63,8 +63,9 @@ class Preparer
                          target: target,
                          max_distance: 512
 
-      merged_only_path = Preparer.contig_folder_path folder, filename: 'hits_only_merged.gff'
-      File.open(merged_only_path, 'w') do |f|
+      # merged hits showing
+      merged_path = Preparer.merged_hits_gff_path(folder)
+      File.open(merged_path, 'w') do |f|
         reader.each_hit do |hit|
           next unless hit.merged?
           hit.back_translate_coords! target
@@ -76,20 +77,9 @@ class Preparer
     end
   end
 
-  def extend_hits
-    blast_reader = BlastReader.new @hits_path
-    pb = ProgressBar.create(title: 'Extending hits', starting_at: 0, total: blast_reader.hits_count)
-
-    blast_reader.extend_borders! output_path: Preparer.extended_hits_path,
-                                 target: target,
-                                 progress_bar: pb
-
-    @hits_path = Preparer.extended_hits_path
-  end
-
   def back_translate_hits
     each_folder('Back translating hits') do |folder|
-      hits_path = Preparer.merged_hits_path(folder)
+      hits_path = Preparer.after_merging_hits_path(folder)
       output_path = Preparer.back_translated_hits_path(folder)
       next unless hits_path.exist?
 
@@ -116,16 +106,58 @@ class Preparer
   def keep_best_nonoverlapped_hits
     each_folder('Selecting nonoverlapped best hits') do |folder|
       input_path = Preparer.back_translated_hits_path folder
-      output_path = Preparer.hit_clusters_csv_path folder
+      output_path = Preparer.clusters_csv_path folder
       next unless input_path.exist?
 
       Filterers::BestNonoverlappedBlastHits.new(input_path, output_path: output_path, target: target).perform
-      `cp #{Preparer.hit_clusters_csv_path folder} #{Preparer.hits_csv_path folder}`
+      `cp #{Preparer.clusters_csv_path folder} #{Preparer.hits_csv_path folder}`
+    end
+  end
+
+  def save_merged_nonoverlapped_hits
+    each_folder('Saving merged nonoverlapped hits') do |folder|
+      input_path = Preparer.clusters_csv_path folder
+      output_path = Preparer.merged_nonoverlapped_hits_gff_path folder
+
+      next unless File.file?(input_path)
+
+      merged_hits = {}
+      File.open(Preparer.merged_hits_gff_path(folder), 'r').each do |l|
+        splitted = l.strip().split("\t")
+        notes = splitted[-1].split(';').map{|e| e.split('=')}.to_h
+        if notes['Parent']
+          merged_hits[notes['Parent']] ||= {}
+          merged_hits[notes['Parent']][:elements] ||= []
+          merged_hits[notes['Parent']][:elements] << l
+        else
+          merged_hits[notes['ID']] ||= {}
+          merged_hits[notes['ID']][:elements] ||= []
+          merged_hits[notes['ID']][:main] = l
+          merged_hits[notes['ID']][:start] = splitted[3].to_i
+          merged_hits[notes['ID']][:finish] = splitted[4].to_i
+        end
+      end
+
+      merged_hits = merged_hits.map { |k, v| [k[/.+?(?=_\d{2,}_\d$)/], v] }.to_h
+
+      File.open(output_path, 'w') do |f|
+        reader = BlastReader.new input_path
+        reader.each_hit do |h|
+          id = h.attr_by_target(:id, h.opposite_target(target))
+          if merged_hits.include?(id)
+            hit_start, hit_finish = [:start, :finish].map { |e| h.attr_by_target(e, target) }.sort
+            found_start, found_finish = [:start, :finish].map { |e| merged_hits[id][e] }.sort
+
+            merged_hits[id].each { |l| f.puts l } if hit_start == found_start && hit_finish == found_finish
+          end
+        end
+        reader.close
+      end
     end
   end
 
   def split_transcripts_by_contigs
-    split_csv_by_contigs @transcriptome_path, CSV_TRANSCRIPTS_FILENAME
+    split_csv_by_contigs @transcriptome_path, PATHS[:transcripts_csv]
   end
 
   def split_sl_mapping_by_contigs
@@ -170,9 +202,9 @@ class Preparer
   def make_gffs
     each_folder('Making gffs') do |folder|
       csv_to_gff Preparer.hits_csv_path(folder), Preparer.hits_gff_path(folder)
-      csv_to_gff Preparer.hit_clusters_csv_path(folder), Preparer.hit_clusters_gff_path(folder)
+      csv_to_gff Preparer.clusters_csv_path(folder), Preparer.clusters_gff_path(folder)
       csv_to_gff Preparer.transcripts_csv_path(folder), Preparer.transcripts_gff_path(folder)
-      csv_to_gff Preparer.hit_clusters_csv_path(folder), Preparer.hit_clusters_extended_gff_path(folder), extend_borders: true
+      csv_to_gff Preparer.clusters_csv_path(folder), Preparer.clusters_extended_gff_path(folder), extend_borders: true
     end
   end
 

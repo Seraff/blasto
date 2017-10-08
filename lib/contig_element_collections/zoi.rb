@@ -7,7 +7,8 @@ module ContigElementCollections
 
 			normalize
 			filter_by_size
-			split_policistronic
+			split_polycistronic
+			shorten_to_sl
 
 			log_prepared
 
@@ -84,16 +85,13 @@ module ContigElementCollections
 			delete_if { |e| small.include? e }
 		end
 
-		def split_policistronic
+		def split_polycistronic
 			splitted_zois = []
 			zois_for_delition = []
 
 			each do |e|
 				if e.polycistronic?
 					splitted_zois += e.split_by_polycistronic_cutting_places
-
-					@filtered[:multiple_blaster_groups] ||= []
-					@filtered[:multiple_blaster_groups] << e
 
 					zois_for_delition << e
 				end
@@ -173,6 +171,21 @@ module ContigElementCollections
 	    @filtered[:intersected] = intersected
 
 	    delete_if { |e| intersected.include? e }
+		end
+
+		def shorten_to_sl
+			each do |z|
+				sl = z.sl_mapping
+				next if !sl or !IntervalsHelper.intersects? z.start..z.finish, sl.start..sl.finish
+
+				if (sl.start-z.start).abs < (sl.start-z.finish).abs
+					# close to start
+					z.start = sl.finish
+				else
+					# close to finish
+					z.finish = sl.start
+				end
+			end
 		end
 
 		def intersects?(a, b)
