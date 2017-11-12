@@ -1,0 +1,39 @@
+annotator:
+  ## Paths to source data
+  genome_reads: 'data/datasets/p57_RNA_to_DNA/p57_bw2_sorted.bam'
+
+  genome: 'data/DNA_scaffolds.fa'
+  blast_hits: 'data/8_october_blast_hits/all_blasthits_filtered_frames_extracted.csv'
+  transcriptome: 'data/stringtie_transcripts_prepared.csv'
+  sl_mapping: 'data/SL_new/trans_splice_sites.bed'
+
+  ## TEST ENVIRONMENT ##
+
+  genome: 'tmp/DNA_scaffolds_NODE_1.fa'
+  blast_hits: 'tmp/test/hits.csv'
+  # sl_mapping: 'tmp/p57_trimmed_sl_sorted_NODE_1.bed'
+
+  ## Main settings
+  max_evalue: 0.001
+  skip_preparation: true
+  tmp_dir: 'results/annotator'
+  blast_hit_target: 'subject'
+  blast_hit_mode: 'genome'
+  zoi_sl_searching_inner_multiplier: 0.25 # inner_threshold = len * inner_multiplier
+  zoi_sl_searching_outer_threshold: 10
+  clean_transcriptome: false
+
+  polycistronic_sl_threshold: 15
+
+  ## Transcriptome filtering
+  transcriptome_min_size: 100
+
+  gene_min_size: 150 # in na
+
+  ## Developing
+  contigs_for_annotating:
+    - NODE_1_length_304652_cov_71.8364
+    #- NODE_252_length_27418_cov_88.0547
+  #   - NODE_33_length_117867_cov_90.1447
+  #   - NODE_12_length_169590_cov_53.9521
+  #   - NODE_1501_length_797_cov_57.8585
