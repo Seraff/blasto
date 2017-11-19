@@ -12,6 +12,7 @@ class BadTranscriptsLogger
 							 :cannot_detect_frame,
 							 :hit_cluster_has_another_frame,
 							 :no_hit_clusters,
+							 :cannot_detect_start,
 							 :cannot_detect_stop,
 							 :short_gene
 						]

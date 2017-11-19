@@ -1,5 +1,7 @@
 module ContigElements
 	class Basic < ContigElement
+		# start - left border
+		# finish - right border
 		attr_accessor :data, :extra_data
 
 		def initialize(contig, start, finish, data, extra_data: {})

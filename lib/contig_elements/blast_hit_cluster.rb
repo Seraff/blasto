@@ -4,11 +4,7 @@ module ContigElements
 
     def initialize(contig, start, finish, data, extra_data: {})
       super
-      if [1,2,3].include? extra_data[:frame]
-        @start, @finish = [start, finish].sort
-      else
-        @start, @finish = [start, finish].sort.reverse
-      end
+      @start, @finish = forward? ? [start, finish].sort : [start, finish].sort.reverse
     end
 
     def blast_hits
@@ -21,6 +17,18 @@ module ContigElements
 
     def best_blast_hit
       @best_blast_hit ||= blast_hits.first
+    end
+
+    def forward?
+      [1,2,3].include? extra_data[:frame]
+    end
+
+    def right_border
+      [start, finish].sort.last
+    end
+
+    def left_border
+      [start, finish].sort.first
     end
 
     def to_gff

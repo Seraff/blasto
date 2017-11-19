@@ -11,7 +11,7 @@ class BlastHit
       first_interval = data[opposite_keys[:start]]..data[opposite_keys[:finish]]
       second_interval = other_hit.data[opposite_keys[:start]]..other_hit.data[opposite_keys[:finish]]
       if IntervalsHelper.intersects?(first_interval, second_interval)
-        puts "ACHTUNG! Hit #{data} and #{other_hit.data} shoud be merged. But have intersected query coordinates..."
+        # puts "ACHTUNG! Hit #{data} and #{other_hit.data} shoud be merged. But have intersected query coordinates..."
         return false
       end
 

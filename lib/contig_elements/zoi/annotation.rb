@@ -18,47 +18,50 @@ module ContigElements
 
         @gene_start = forward? ? start+idx*3+local_frame-1 : finish-idx*3-local_frame+4
 
-        first_stop_border = @gene_start
-        second_stop_border = forward? ? finish : start
-        first_stop_border, second_stop_border = [first_stop_border, second_stop_border].sort
-        stop_aa_region = contig.aa_subseq(first_stop_border, second_stop_border, forward: forward?)
-
-        raise 'Bad stop locus' if stop_aa_region[0] != 'M'
-
-        hit_border = forward? ? first_stop_border : second_stop_border
-
-        closest_stop_idx = nil
-        closest_dist = nil
+        ######################################
+        ######## Stop searching BEGIN ########
+        ######################################
 
         raise "Wrong hit cluster: #{best_blast_hit.data.data}" if best_blast_hit.na_len%3 != 0
-        bbh_borders = [best_blast_hit.extended_start, best_blast_hit.extended_finish].sort
-        bbh_finish = forward? ? bbh_borders[1] : bbh_borders[0]
+        hit_borders = [best_blast_hit.start, best_blast_hit.finish].sort
+        hit_end = forward? ? hit_borders[1]+1 : hit_borders[0]-1
 
-        stop_aa_region.to_s.split('').each_with_index do |aa, i|
-          if aa == '*'
-            global_idx = forward? ? hit_border+i*3-1 : hit_border-i*3+1
-            dist = (global_idx - bbh_finish).abs
+        zoi_borders = [start, finish].sort
+        zoi_end = forward? ? zoi_borders[1] : zoi_borders[0]
 
-            closest_stop_idx ||= i
-            closest_dist ||= dist
+        stop_id = nil
 
-            if dist < closest_dist
-              closest_dist = dist
-              closest_stop_idx = i
-            end
-          end
+        ## First attempt:
+        ## closest STOP to real hit end in the interval from real hit end to the end of zoi
+
+        if (forward? && (hit_end < zoi_end)) || (!forward? && (hit_end > zoi_end))
+          first_border, second_border = [hit_end, zoi_end].sort
+          stop_id = find_stop(first_border, second_border, hit_end)
+          # write_log_to_new_gff('results/annotator/tst.gff', first_border, second_border, direction: '+', contig: nil, extra: {})
         end
 
-        if closest_stop_idx.nil?
+        ## Second attempt
+        ## closest STOP to real hit end in the interval from the gene start to the end of zoi
+
+        # unless stop_id
+        #   first_border = @gene_start
+        #   second_border = forward? ? finish : start
+        #   first_border, second_border = [first_border, second_border].sort
+
+        #   stop_id = find_stop(first_border, second_border, hit_end)
+        # end
+
+        if stop_id.nil?
           make_invalid! reason: :cannot_detect_stop
           BadTranscriptsLogger.add_to_bin self
           return false
         end
 
-        @gene_finish = forward? ?
-                       first_stop_border+closest_stop_idx*3-1 :
-                       second_stop_border-closest_stop_idx*3+1
+        ####################################
+        ######## Stop searching END ########
+        ####################################
 
+        @gene_finish = stop_id
 
         if (@gene_finish - @gene_start).abs+1 < Settings.annotator.gene_min_size
           make_invalid! reason: :short_gene
@@ -72,6 +75,28 @@ module ContigElements
       end
 
       def find_stop(left_border, right_border, closest_point)
+        stop_aa_region = contig.aa_subseq(left_border, right_border, forward: forward?)
+
+        closest_stop_idx = nil
+        closest_dist = nil
+
+        stop_aa_region.to_s.split('').each_with_index do |aa, i|
+          if aa == '*'
+            current_idx = forward? ? left_border+i*3-1 : right_border-i*3+1
+            dist = (current_idx - closest_point).abs
+
+            closest_stop_idx ||= i
+            closest_dist ||= dist
+
+            if dist < closest_dist
+              closest_dist = dist
+              closest_stop_idx = i
+            end
+          end
+        end
+
+        closest_stop_idx = forward? ? left_border+closest_stop_idx*3-1 : right_border-closest_stop_idx*3+1 if closest_stop_idx
+        closest_stop_idx
       end
 
       def forward?

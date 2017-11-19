@@ -11,14 +11,21 @@ module ContigElements
 				new_zois = []
 				last_coord = start
 
-				polycistronic_cutting_places.each do |coord|
-					new_start = last_coord == start ? start : last_coord+1
-					new_zois << get_subzoi(new_start, coord)
+				begin
+					polycistronic_cutting_places.each do |coord|
+						new_start = last_coord == start ? start : last_coord+1
+						new_zois << get_subzoi(new_start, coord)
 
-					last_coord = coord
+						last_coord = coord
+					end
+
+					new_zois << get_subzoi(last_coord+1, finish) if last_coord < finish
+				rescue
+					puts [start, finish].inspect
+					puts group_blasters_by_intersections.flatten.map{|e| [e.start, e.finish]}.inspect
+					puts polycistronic_cutting_places.inspect
+					exit 0
 				end
-
-				new_zois << get_subzoi(last_coord+1, finish) if last_coord < finish
 
 				new_zois
 			end
@@ -39,9 +46,9 @@ module ContigElements
 						next_group = groups[i+1]
 						break if next_group.nil?
 
-						left = group.max { |e| e.finish }.finish# - Settings.annotator.polycistronic_sl_threshold
-						right = next_group.min { |e| e.start }.start# + Settings.annotator.polycistronic_sl_threshold
-
+						left = group.max { |e| e.right_border }.right_border# - Settings.annotator.polycistronic_sl_threshold
+						right = next_group.min { |e| e.left_border }.left_border# + Settings.annotator.polycistronic_sl_threshold
+						# puts "#{left} - #{right}"
 						sl = all_sl_mappings.dup.select_intersected([left, right]).first
 
 						if sl
