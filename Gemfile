@@ -15,3 +15,5 @@ gem 'matplotlib'
 
 gem 'config'
 gem 'range_operators'
+
+gem 'test-unit'

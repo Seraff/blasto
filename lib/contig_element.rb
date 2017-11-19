@@ -22,4 +22,5 @@ class ContigElement
 	end
 end
 
+require "#{ROOT_PATH}/lib/contig_elements/basic.rb"
 Dir["#{ROOT_PATH}/lib/contig_elements/*.rb"].each {|file| require file }

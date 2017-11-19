@@ -122,7 +122,7 @@ module ContigElements
 		def sl_mapping
 			@sl_mapping ||= begin
 				center_coord = (start+finish)/2
-				sl_mappings.sort_by { |e| (e.start-center_coord).abs }.first
+				sl_mappings.sort_by { |e| [-e.coverage, (e.start-center_coord).abs] }.first
 			end
 		end
 
@@ -151,8 +151,9 @@ module ContigElements
 				notes = raw_gff_hash[:notes]
 			end
 
-			unless valid?
-				notes.gsub!(/ID=(.+?)(?=(;|\z))/, "ID=\\1_(#{validation_error});")
+			if invalid?
+				invalid_hash = SecureRandom.hex
+				notes.gsub!(/ID=(.+?)(?=(;|\z))/, "ID=#{invalid_hash}_(#{validation_error});")
 			end
 
 			notes += ";color=#{color}"

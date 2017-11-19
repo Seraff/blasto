@@ -18,6 +18,20 @@ module ContigElements
 
         @gene_start = forward? ? start+idx*3+local_frame-1 : finish-idx*3-local_frame+4
 
+        # Check, if start in [zoi_start..hit_start+3]
+
+        if forward?
+          start_borders = start..(best_blast_hit.start+3)
+        else
+          start_borders = (best_blast_hit.finish-3)..finish
+        end
+
+        unless start_borders.include?(@gene_start)
+          make_invalid! reason: :cannot_detect_start
+          BadTranscriptsLogger.add_to_bin self
+          return false
+        end
+
         ######################################
         ######## Stop searching BEGIN ########
         ######################################
@@ -69,7 +83,9 @@ module ContigElements
           return false
         end
 
-        puts "Gene #{@raw_gff} (valid: #{@valid}, defective: #{@defection_reason}) has incorrect length [#{@gene_start}, #{@gene_finish}] (#{(@gene_finish-@gene_start).abs+1})" if ((@gene_finish-@gene_start).abs+1)%3 != 0
+        if forward? ? @gene_start > @gene_finish : @gene_start < @gene_finish
+          raise "Gene coordinates are not correct: [#{gene_start}, #{gene_finish}] (forward: #{forward?})"
+        end
 
         true
       end

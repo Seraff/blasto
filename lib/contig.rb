@@ -155,7 +155,8 @@ class Contig
           splitted = line.split "\t"
           start = splitted[1].to_i+1
           finish = splitted[2].to_i
-          elements << ContigElements::Basic.new(self, start, finish, nil)
+          cov = splitted[4].to_f
+          elements << ContigElements::Sl.new(self, start, finish, { coverage: cov })
         end
       end
 
