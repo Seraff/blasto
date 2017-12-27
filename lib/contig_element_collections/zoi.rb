@@ -24,13 +24,6 @@ module ContigElementCollections
 
 			log_filtered
 
-			# each do |z|
-			# 	write_log_to_new_gff 'tmp/annotator/contigs/NODE_1_length_304652_cov_71.8364/a_test.gff',
-			# 											 z.best_blast_hit.start,
-			# 											 z.best_blast_hit.finish,
-			# 											 extra: { 'color' => '#e510ed' }
-			# end
-
 			self
 		end
 
@@ -42,7 +35,7 @@ module ContigElementCollections
 			self.class.new @filtered.values.flatten
 		end
 
-		# protected
+		protected
 
 		def normalize
 			each(&:normalize!)

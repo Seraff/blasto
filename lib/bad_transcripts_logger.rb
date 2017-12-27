@@ -19,6 +19,8 @@ class BadTranscriptsLogger
 
 	class << self
 		def remove_old_logs
+			return if BadTranscriptsLogger.test_environment?
+
 			path = Preparer.abs_path_for(LOG_FILENAME)
 			path.rmtree if path.exist?
 
@@ -29,6 +31,8 @@ class BadTranscriptsLogger
 		end
 
 		def add_to_bin(zoi)
+			return if BadTranscriptsLogger.test_environment?
+
 			log_file = Preparer.contig_folder_path(zoi.contig.title, filename: LOG_FILENAME)
 			`touch #{log_file}` unless log_file.exist?
 
@@ -42,6 +46,8 @@ class BadTranscriptsLogger
 		end
 
 		def gather_full_log
+			return if BadTranscriptsLogger.test_environment?
+
 			full_log_path = Preparer.abs_path_for(LOG_FILENAME)
       full_log_path.rmtree if full_log_path.exist?
 
@@ -56,6 +62,8 @@ class BadTranscriptsLogger
 		end
 
 		def gather_all_clusters
+			return if BadTranscriptsLogger.test_environment?
+
 			clusters_filename = 'hit_clusters.gff'
 			full_clusters_path = Preparer.abs_path_for(clusters_filename)
       full_clusters_path.rmtree if full_clusters_path.exist?
@@ -71,6 +79,8 @@ class BadTranscriptsLogger
 		end
 
 		def print_reasons_stats
+			return if BadTranscriptsLogger.test_environment?
+
 			puts
 			path = Preparer.abs_path_for(TOTAL_STAT_FILENAME)
 			path.rmtree if path.exist?
@@ -89,6 +99,10 @@ class BadTranscriptsLogger
 			end
 
 			puts `cat #{path}`
+		end
+
+		def test_environment?
+			ENV['BLASTO_ENV'] == 'TEST'
 		end
 	end
 end
