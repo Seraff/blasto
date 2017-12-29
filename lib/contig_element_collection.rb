@@ -20,20 +20,6 @@ class ContigElementCollection < Array
 		@contig = contig
 	end
 
-	def select_totally_covered
-		covered = self.class.new
-
-		each do |el|
-			each do |other|
-				next if other == el
-
-				covered << other if el.covers?(other)
-			end
-		end
-
-		covered
-	end
-
 	# smells very bad
 	def covers?(a, b)
     [a, b].intersection == (b.first..b.last)

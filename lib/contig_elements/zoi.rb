@@ -16,7 +16,6 @@ module ContigElements
 		attr_reader :contig, :frame,
 								:validation_error, :extra_data,
 								:gene_start, :gene_finish, :source_frame, :raw_gff
-
 		# start - left border
 		# finish - right border
 		# gene_start - real start (left or right side, according to frame)
@@ -41,6 +40,10 @@ module ContigElements
 			!@gene_start.nil? && !@gene_finish.nil?
 		end
 
+		def validate!
+
+		end
+
 		def make_invalid!(reason: nil)
 			@valid = false
 			@validation_error = reason if reason
@@ -55,9 +58,16 @@ module ContigElements
 				@valid = begin
 					@validation_error = nil
 
-					if hit_clusters.count > 1
+					if (finish - start + 1) < Settings.annotator.transcriptome_min_size
+						@validation_error = :short
+					elsif hit_clusters.count == 0
+						@validation_error = :no_hit_clusters
+					elsif hit_clusters.count > 1
+					elsif covered_by_siblings?
+						@validation_error = :covered_by_siblings
+					elsif hit_clusters.count > 1
 						@validation_error = :hit_clusters_more_than_one
-					elsif sl_mapping.nil?
+					elsif sl_mappings.empty?
 						@defection_reason ||= :has_no_sl_mappings
 					elsif correct_local_frame.nil?
 						@defection_reason ||= :cannot_detect_frame
@@ -104,11 +114,20 @@ module ContigElements
 			hit_cluster && hit_cluster.best_blast_hit
 		end
 
+		def siblings
+			contig.zoi - [self]
+		end
+
+		def covered_by_siblings?
+			siblings.any? { |s| s.covers? self }
+		end
+
 		def sl_mappings
 			@sl_mappings ||= begin
 				zones = [[start-outer_threshold, start+inner_threshold],
 								 [finish-inner_threshold, finish+outer_threshold]]
 				contig.sl_mappings.select_intersected(*zones)
+				#TODO: sort by rules
 			end
 		end
 
@@ -116,13 +135,6 @@ module ContigElements
 			@inner_sl_mappings ||= begin
 				zone = [start-outer_threshold, finish+outer_threshold]
 				contig.sl_mappings.select_intersected(zone)
-			end
-		end
-
-		def sl_mapping
-			@sl_mapping ||= begin
-				center_coord = (start+finish)/2
-				sl_mappings.sort_by { |e| [-e.coverage, (e.start-center_coord).abs] }.first
 			end
 		end
 

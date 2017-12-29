@@ -6,12 +6,10 @@ module ContigElementCollections
 			@filtered = {}
 
 			normalize
-			filter_by_size
 			split_polycistronic
 
 			log_prepared
 
-			filter_without_blaster
 			merge_duplicates
 			filter_totally_covered
 			filter_intersected
@@ -65,18 +63,6 @@ module ContigElementCollections
 			push(*merged)
 		end
 
-		def filter_by_size
-			small = []
-
-			each do |e|
-				small << e if (e.finish - e.start + 1) < Settings.annotator.transcriptome_min_size
-			end
-
-			@filtered[:short] = small
-
-			delete_if { |e| small.include? e }
-		end
-
 		def split_polycistronic
 			splitted_zois = []
 			zois_for_delition = []
@@ -93,18 +79,6 @@ module ContigElementCollections
 			zois_for_delition.each { |z| delete(z) }
 		end
 
-		def filter_without_blaster
-			without_blaster = []
-
-			each do |e|
-				without_blaster << e if e.hit_clusters.count == 0
-			end
-
-			@filtered[:no_hit_clusters] = without_blaster
-
-			delete_if { |e| without_blaster.include? e }
-		end
-
 		def merge_duplicates
 			elements = {}
 
@@ -114,30 +88,6 @@ module ContigElementCollections
 
 			vals = elements.values
 			keep_if { |e| vals.include? e }
-		end
-
-		def filter_totally_covered
-			covered = []
-
-			each do |e|
-				add_to_covered = false
-
-				other = self.dup
-	      other.delete e
-
-	      other.each do |o|
-	        if covers? o.to_range, e.to_range
-	          add_to_covered = true
-	          break
-	        end
-	      end
-
-	      covered << e if add_to_covered
-			end
-
-			@filtered[:totally_covered] = covered
-
-			delete_if { |e| covered.include? e }
 		end
 
 		def filter_intersected
