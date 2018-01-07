@@ -6,6 +6,7 @@ class BadTranscriptsLogger
 							 :short_transcript,
 							 :intersected,
 							 :merged,
+							 :intersected_by_siblings,
 							 :covered_by_siblings,
 							 :hit_clusters_more_than_one,
 							 :has_no_sl_mappings,

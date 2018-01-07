@@ -8,6 +8,7 @@ module ContigElements
 		DIRECTIONS = ['+', '-'].freeze
 		FRAMES = (1..6).to_a.freeze
 		START_CODON = 'M'
+		STOP_CODON = '*'
 
 		VALID_COLOR = '#009900'
 		DEFECTIVE_COLOR = '#d1b204'
@@ -63,16 +64,7 @@ module ContigElements
 					elsif hit_clusters.count == 0
 						@validation_error = :no_hit_clusters
 					elsif hit_clusters.count > 1
-					elsif covered_by_siblings?
-						@validation_error = :covered_by_siblings
-					elsif hit_clusters.count > 1
 						@validation_error = :hit_clusters_more_than_one
-					elsif sl_mappings.empty?
-						@defection_reason ||= :has_no_sl_mappings
-					elsif correct_local_frame.nil?
-						@defection_reason ||= :cannot_detect_frame
-					elsif !in_bh_cluster_frame?
-						@defection_reason ||= :hit_cluster_has_another_frame
 					end
 
 					@validation_error.nil?
@@ -87,7 +79,17 @@ module ContigElements
 		end
 
 		def defective?
-			valid? && !@defection_reason.nil?
+			return false unless valid?
+
+			@defection_reason ||= begin
+				if sl_mappings.empty?
+					:has_no_sl_mappings
+				elsif correct_local_frame.nil?
+					:cannot_detect_frame
+				elsif !in_bh_cluster_frame?
+					:hit_cluster_has_another_frame
+				end
+			end
 		end
 
 		def make_defective!(reason:)
@@ -114,27 +116,17 @@ module ContigElements
 			hit_cluster && hit_cluster.best_blast_hit
 		end
 
-		def siblings
-			contig.zoi - [self]
-		end
-
-		def covered_by_siblings?
-			siblings.any? { |s| s.covers? self }
-		end
-
-		def sl_mappings
-			@sl_mappings ||= begin
-				zones = [[start-outer_threshold, start+inner_threshold],
-								 [finish-inner_threshold, finish+outer_threshold]]
-				contig.sl_mappings.select_intersected(*zones)
-				#TODO: sort by rules
+		def left_sls_sorted
+			@left_sls_sorted ||= begin
+				interval = (start-outer_threshold)..(start+inner_threshold)
+				sorted_sls_by_interval interval
 			end
 		end
 
-		def all_sl_mappings
-			@inner_sl_mappings ||= begin
-				zone = [start-outer_threshold, finish+outer_threshold]
-				contig.sl_mappings.select_intersected(zone)
+		def right_sls_sorted
+			@right_sls_sorted ||= begin
+				interval = (finish-inner_threshold)..(finish+outer_threshold)
+				sorted_sls_by_interval interval
 			end
 		end
 
@@ -230,6 +222,15 @@ module ContigElements
 
 		def outer_threshold
 			Settings.annotator.zoi_sl_searching_outer_threshold.to_f
+		end
+
+		def sorted_sls_by_interval(interval)
+			sls = contig.sl_mappings.select_intersected([interval.begin, interval.end])
+			sls.sort_by { |e| [-e.coverage, (e.start-center_coord).abs] }
+		end
+
+		def center_coord
+			(start+finish)/2
 		end
 	end
 end

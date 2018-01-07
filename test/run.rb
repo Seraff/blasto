@@ -9,5 +9,7 @@ require File.join(bin_dir, 'lib.rb')
 require 'bundler/setup'
 Bundler.require
 
+Config.load_and_set_settings('test/settings.yml')
+
 exit Test::Unit::AutoRunner.run(true, test_dir)
 

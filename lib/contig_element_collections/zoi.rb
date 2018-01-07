@@ -3,24 +3,10 @@ module ContigElementCollections
 		attr_accessor :filtered
 
 		def prepare
-			@filtered = {}
-
 			normalize
 			split_polycistronic
-
 			log_prepared
-
 			merge_duplicates
-			filter_totally_covered
-			filter_intersected
-
-			select(&:invalid?).each do |z|
-				@filtered[z.validation_error] ||= []
-				@filtered[z.validation_error] << z
-			end
-			keep_if(&:valid?)
-
-			log_filtered
 
 			self
 		end
@@ -29,16 +15,13 @@ module ContigElementCollections
 			detect { |e| e.id.start_with? name }
 		end
 
-		def filtered
-			self.class.new @filtered.values.flatten
-		end
-
 		protected
 
 		def normalize
 			each(&:normalize!)
 		end
 
+		#TODO: what to do? we do not use it
 		def merge_by_best_blast_hit
 			to_remove = []
 			merged = []
@@ -47,7 +30,7 @@ module ContigElementCollections
 				next if hit.nil?
 
 				if group.count > 1
-					to_remove += group
+					group.each { |e| e.make_invalid! reason: :merged }
 
 					start = group.sort_by { |e| e.start }.first.start
 					finish = group.sort_by { |e| e.finish }.last.finish
@@ -58,8 +41,6 @@ module ContigElementCollections
 				end
 			end
 
-			@filtered[:merged] = to_remove
-			delete_if { |e| to_remove.include? e }
 			push(*merged)
 		end
 
@@ -71,12 +52,11 @@ module ContigElementCollections
 				if e.polycistronic?
 					splitted_zois += e.split_by_polycistronic_cutting_places
 
-					zois_for_delition << e
+					e.make_invalid! reason: :splitted
 				end
 			end
 
 			push(*splitted_zois)
-			zois_for_delition.each { |z| delete(z) }
 		end
 
 		def merge_duplicates
@@ -89,39 +69,6 @@ module ContigElementCollections
 			vals = elements.values
 			keep_if { |e| vals.include? e }
 		end
-
-		def filter_intersected
-			intersected = []
-
-			each do |me|
-	      next if intersected.include? me
-
-	      without_me = self.dup
-	      without_me.delete(me)
-
-	      intersection_found = false
-
-	      without_me.each do |other|
-	        if intersects? other.to_range, me.to_range
-	          intersection_found = true
-	          intersected += [me, other]
-	          break
-	        end
-	      end
-	    end
-
-	    @filtered[:intersected] = intersected
-
-	    delete_if { |e| intersected.include? e }
-		end
-
-		def intersects?(a, b)
-	  	![a, b].intersection.nil?
-		end
-
-	  def covers?(a, b)
-	    [a, b].intersection == (b.first..b.last)
-	  end
 
 	  def log_filtered
 	  	@filtered.each do |reason, group|

@@ -205,4 +205,8 @@ class Contig
     min_start_id = indexes.index(indexes.compact.min)
     frames[min_start_id]
   end
+
+  def subsequence(left, right)
+    ContigSubsequence.new self, left, right
+  end
 end
