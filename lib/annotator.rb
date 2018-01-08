@@ -6,8 +6,6 @@ class Annotator
 
   def initialize
     @genome_path = SettingsHelper.instance.abs_path_for_setting :genome
-
-    @reads_path = SettingsHelper.instance.abs_path_for_setting :genome_reads
     @hits_prepared = Settings.annotator.skip_preparation
 
     @genome = Bio::FlatFile.open(Bio::FastaFormat, @genome_path)
@@ -54,14 +52,6 @@ class Annotator
 
     each_contig(prefixes: contigs_ids) do |c|
       c.annotate
-
-      # writing final clusters
-      # File.open(Preparer.abs_path_for(ContigElements::BlastHitCluster::FINAL_CLUSTERS_FILENAME), 'w') do |f|
-      #   c.blast_hit_clusters.each do |cluster|
-      #     f.puts cluster.to_gff
-      #   end
-      # end
-
       pb.increment
     end
 

@@ -12,7 +12,7 @@ module ContigElements
       elsif [4, 5, 6].include?(frame)
         start
       else
-        raise "Wrong frame for ContigSubsequence#forward_frame?(): #{frame}"
+        raise "Wrong frame for ContigSubsequence#forward_frame: #{frame}"
       end
     end
   end

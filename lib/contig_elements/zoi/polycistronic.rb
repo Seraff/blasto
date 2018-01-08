@@ -22,7 +22,7 @@ module ContigElements
 					new_zois << get_subzoi(last_coord+1, finish) if last_coord < finish
 				rescue
 					puts [start, finish].inspect
-					puts group_blasters_by_intersections.flatten.map{|e| [e.start, e.finish]}.inspect
+					puts group_hits_by_intersections.flatten.map{|e| [e.start, e.finish]}.inspect
 					puts polycistronic_cutting_places.inspect
 					exit 0
 				end
@@ -32,9 +32,9 @@ module ContigElements
 
 			def polycistronic_cutting_places
 				@polycistronic_cutting_places ||= begin
-					return [] if hit_clusters.count <= 1
+					return [] if blast_hits.count <= 1
 
-					groups = group_blasters_by_intersections
+					groups = group_hits_by_intersections
 					return [] if groups.count <= 1
 
 					# ---[***]------[***]---
@@ -46,10 +46,10 @@ module ContigElements
 						next_group = groups[i+1]
 						break if next_group.nil?
 
-						left = group.max { |e| e.right_border }.right_border# - Settings.annotator.polycistronic_sl_threshold
-						right = next_group.min { |e| e.left_border }.left_border# + Settings.annotator.polycistronic_sl_threshold
-						# puts "#{left} - #{right}"
-						sl = all_sl_mappings.dup.select_intersected([left, right]).first
+						left = group.max { |e| e.finish }.finish# - Settings.annotator.polycistronic_sl_threshold
+						right = next_group.min { |e| e.start }.start# + Settings.annotator.polycistronic_sl_threshold
+
+						sl = sls.dup.select_intersected([left, right]).first
 
 						if sl
 							cutting_places << sl.start
@@ -62,9 +62,9 @@ module ContigElements
 				end
 			end
 
-			def group_blasters_by_intersections
+			def group_hits_by_intersections
 			  groups = []
-			  sorted = hit_clusters.dup.sort_by { |h| h.start }
+			  sorted = blast_hits.dup.sort_by { |h| h.start }
 
 			  current_group = []
 			  sorted.each do |e|

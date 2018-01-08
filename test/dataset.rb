@@ -1,7 +1,7 @@
 class DummyContig
-  attr_accessor :sl_mappings, :zoi, :blast_hit_clusters, :seq
+  attr_accessor :sl_mappings, :zoi, :blast_hits, :seq
 
-  def initialize(sl_data, zoi_data, hit_clusters_data, seq:)
+  def initialize(sl_data, zoi_data, blast_hits_data, seq:)
     self.seq = seq || _generate_seq
 
     sls = sl_data.map { |e| ContigElements::Sl.new self, e[0], e[1], { coverage: e[2] } }
@@ -14,12 +14,13 @@ class DummyContig
     self.zoi = ContigElementCollections::Zoi.new(elements)
     self.zoi.contig = self if self.zoi.any?
 
-    clusters = hit_clusters_data.map do |e|
-      extra_data = { frame: e[2], forward: [1, 2, 3].include?(e[2]) }
-      ContigElements::BlastHitCluster.new(self, e[0], e[1], [], extra_data: extra_data)
+    hits = blast_hits_data.map do |e|
+      data = { qseqid: 'guy|12345', sframe: e[2] }
+      hit = BlastHit.new(data.keys, data)
+      ContigElements::BlastHit.new(self, e[0], e[1], hit)
     end
 
-    self.blast_hit_clusters = ContigElementCollection.new(clusters)
+    self.blast_hits = ContigElementCollection.new(hits)
   end
 
   def title
@@ -28,6 +29,14 @@ class DummyContig
 
   def length
     seq.length
+  end
+
+  def target
+    :subject
+  end
+
+  def subsequence(left, right)
+    ContigSubsequence.new self, left, right
   end
 
   protected
@@ -39,14 +48,14 @@ end
 
 class TestDataset
   attr_accessor :built, :contig, :zoi_coords,
-    :sl_coords, :hit_cluster_coords, :seq
+    :sl_coords, :blast_hit_coords, :seq
 
   def initialize(contig_seq = nil)
     self.seq = contig_seq
     self.contig = nil
     self.zoi_coords = []
     self.sl_coords = []
-    self.hit_cluster_coords = []
+    self.blast_hit_coords = []
     self.built = false
   end
 
@@ -60,15 +69,15 @@ class TestDataset
     self.built = false
   end
 
-  def add_hit_cluster(*coords)
-    self.hit_cluster_coords += coords
+  def add_hit(*coords)
+    self.blast_hit_coords += coords
     self.built = false
   end
 
   def contig
     unless built
       rebuild
-      built = true
+      self.built = true
     end
 
     @contig
@@ -79,7 +88,7 @@ class TestDataset
   def rebuild()
     self.contig = DummyContig.new(self.sl_coords,
                                   self.zoi_coords,
-                                  self.hit_cluster_coords,
+                                  self.blast_hit_coords,
                                   seq: seq)
   end
 end

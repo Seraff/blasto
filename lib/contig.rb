@@ -1,15 +1,15 @@
 require_relative 'contig_element_collection'
 
 class Contig
-  attr_reader :blast_hits, :blast_hit_clusters, :transcripts, :sl_mappings
+  attr_reader :blast_hits, :transcripts, :sl_mappings
 
   ANNOTATION_FILENAME = 'annotation.gff'
 
   class << self
     def gather_full_annotation_files
       gather_full_file(ANNOTATION_FILENAME)
-      gather_full_file(Preparer::PATHS[:clusters_gff])
-      gather_full_file(Preparer::PATHS[:clusters_extended_gff])
+      gather_full_file(Preparer::PATHS[:prepared_hits_gff])
+      gather_full_file(Preparer::PATHS[:prepared_hits_extended_gff])
       gather_full_file(Preparer::PATHS[:merged_nonoverlapped_hits_gff])
       gather_full_file('prepared_zois.gff')
     end
@@ -33,7 +33,6 @@ class Contig
 
     # caching
     blast_hits
-    blast_hit_clusters
     sl_mappings
     zoi
   end
@@ -65,7 +64,8 @@ class Contig
 
     File.open(Preparer.contig_folder_path(title, filename: ANNOTATION_FILENAME), 'w') do |f|
       zoi.each do |z|
-        f.puts z.to_gff if z.annotate
+        z.annotate if z.valid?
+        f.puts z.to_gff
       end
     end
 
@@ -73,7 +73,7 @@ class Contig
   end
 
   def inspect
-    denied_vars = [:@blast_hits, :@blast_hit_clusters, :@transcripts, :@sl_mappings, :@fasta]
+    denied_vars = [:@blast_hits, :@transcripts, :@sl_mappings, :@fasta]
     vars = instance_variables.select { |v| !denied_vars.include? v }
                              .map { |v| [v, instance_variable_get(v)] }
                              .to_h
@@ -95,48 +95,6 @@ class Contig
         elements = reader.hits.map do |h|
           ContigElements::BlastHit.new self, h.start(target), h.finish(target), h
         end
-      end
-
-      ContigElementCollection.new elements
-    end
-  end
-
-  def blast_hit_clusters
-    @blast_hit_clusters ||= begin
-      elements = []
-
-      path = Preparer::clusters_gff_path(title)
-
-      if path.exist?
-        File.open(path, 'r').each do |line|
-          next if line.start_with? '#'
-
-          splitted = line.split "\t"
-          start = splitted[3].to_i
-          finish = splitted[4].to_i
-          frame = splitted[7].to_i
-
-          hits = blast_hits.select_intersected([start, finish])
-          hits.keep_if { |h| h.data.detect_frame(target) == frame }
-
-          extra_data = { frame: frame, forward: [1, 2, 3].include?(frame) }
-          elements << ContigElements::BlastHitCluster.new(self, start, finish, hits, extra_data: extra_data)
-        end
-      end
-
-      elements.keep_if do |e|
-        covered = false
-
-        elements.each do |other|
-          next if other == e
-
-          if other.covers?(e)# && other.extra_data[:forward] != e.extra_data[:forward]
-            covered = true
-            break
-          end
-        end
-
-        !covered
       end
 
       ContigElementCollection.new elements

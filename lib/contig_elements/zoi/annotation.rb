@@ -29,6 +29,11 @@ module ContigElements
         subs = contig.subsequence *[hit.end, self.end].sort
         @gene_finish = subs.get_na_coord_for_aa_in_contig_frame(STOP_CODON, frame)
 
+        if @gene_finish
+          @gene_finish -= 1 if forward?
+          @gene_finish += 1 if reverse?
+        end
+
         unless @gene_finish
           make_invalid! reason: :cannot_detect_stop
           return false
@@ -43,7 +48,7 @@ module ContigElements
 
           sls.detect do |sl|
             subs = subsequence_for_sl(sl)
-            subs.get_na_coord_for_aa_in_contig_frame('M', frame)
+            subs.get_na_coord_for_aa_in_contig_frame(START_CODON, frame)
           end
         end
       end
@@ -74,6 +79,10 @@ module ContigElements
 
       def reverse?
         hit.reverse?
+      end
+
+      def direction
+        forward? ? '+' : '-'
       end
 
       def begin

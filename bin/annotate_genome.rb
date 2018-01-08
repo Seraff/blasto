@@ -10,7 +10,7 @@ params = Slop.parse do |o|
 end
 
 required_params = [:genome]
-required_params += [:genome_reads, :blast_hits, :transcriptome, :blast_hit_target] unless Settings.annotator.skip_preparation
+required_params += [:blast_hits, :transcriptome, :blast_hit_target] unless Settings.annotator.skip_preparation
 
 required_params.each do |name|
   raise "#{name} param is not provided in annotator.yml" unless Settings.annotator.send(name)

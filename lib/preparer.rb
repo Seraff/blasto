@@ -106,17 +106,17 @@ class Preparer
   def keep_best_nonoverlapped_hits
     each_folder('Selecting nonoverlapped best hits') do |folder|
       input_path = Preparer.back_translated_hits_path folder
-      output_path = Preparer.clusters_csv_path folder
+      output_path = Preparer.prepared_hits_csv_path folder
       next unless input_path.exist?
 
       Filterers::BestNonoverlappedBlastHits.new(input_path, output_path: output_path, target: target).perform
-      `cp #{Preparer.clusters_csv_path folder} #{Preparer.hits_csv_path folder}`
+      `cp #{Preparer.prepared_hits_csv_path folder} #{Preparer.hits_csv_path folder}`
     end
   end
 
   def save_merged_nonoverlapped_hits
     each_folder('Saving merged nonoverlapped hits') do |folder|
-      input_path = Preparer.clusters_csv_path folder
+      input_path = Preparer.prepared_hits_csv_path folder
       output_path = Preparer.merged_nonoverlapped_hits_gff_path folder
 
       next unless File.file?(input_path)
@@ -202,9 +202,9 @@ class Preparer
   def make_gffs
     each_folder('Making gffs') do |folder|
       csv_to_gff Preparer.hits_csv_path(folder), Preparer.hits_gff_path(folder)
-      csv_to_gff Preparer.clusters_csv_path(folder), Preparer.clusters_gff_path(folder)
+      csv_to_gff Preparer.prepared_hits_csv_path(folder), Preparer.prepared_hits_gff_path(folder)
       csv_to_gff Preparer.transcripts_csv_path(folder), Preparer.transcripts_gff_path(folder)
-      csv_to_gff Preparer.clusters_csv_path(folder), Preparer.clusters_extended_gff_path(folder), extend_borders: true
+      csv_to_gff Preparer.prepared_hits_csv_path(folder), Preparer.prepared_hits_extended_gff_path(folder), extend_borders: true
     end
   end
 

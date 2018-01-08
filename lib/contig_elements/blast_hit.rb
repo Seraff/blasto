@@ -1,15 +1,23 @@
 module ContigElements
   class BlastHit < Basic
     def frame
-      @frame ||= data.frame(contig.target).to_i
+      @frame ||= hit_attr(:frame).to_i
     end
 
     def organism
-      @organism ||= data.data[:qseqid].split(/_|\|/).first
+      @organism ||= hit_attr(:id).split(/_|\|/).first
     end
 
     def gene
-      @gene ||= data.data[:qseqid].split(/_|\|/)[1..-1].join
+      @gene ||= hit_attr(:id).split(/_|\|/)[1..-1].join
+    end
+
+    def hit_object
+      data
+    end
+
+    def hit_attr(attr_name)
+      hit_object.attr_by_target(attr_name, contig.target)
     end
 
     def direction
@@ -27,7 +35,7 @@ module ContigElements
     end
 
     def reverse?
-      !forward
+      !forward?
     end
 
     def extended_start
@@ -52,17 +60,17 @@ module ContigElements
 
     def cache_extended_borders
       return if @extended_start || @extended_finish
-      data.extend_borders! contig.target
+      hit_object.extend_borders! contig.target
 
-      @extended_start = data.start contig.target
-      @extended_finish = data.finish contig.target
+      @extended_start = hit_object.start contig.target
+      @extended_finish = hit_object.finish contig.target
 
       if @extended_start < 0 || @extended_finish < 0
         raise 'Wrong extension in ' + self.inspect
       end
 
-      data.assign_attr_by_target(:start, start, contig.target)
-      data.assign_attr_by_target(:finish, finish, contig.target)
+      hit_object.assign_attr_by_target(:start, start, contig.target)
+      hit_object.assign_attr_by_target(:finish, finish, contig.target)
     end
   end
 end
