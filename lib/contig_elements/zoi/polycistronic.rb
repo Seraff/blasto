@@ -21,6 +21,7 @@ module ContigElements
 
 					new_zois << get_subzoi(last_coord+1, finish) if last_coord < finish
 				rescue
+					puts "POLY ERROR"
 					puts [start, finish].inspect
 					puts group_hits_by_intersections.flatten.map{|e| [e.start, e.finish]}.inspect
 					puts polycistronic_cutting_places.inspect
@@ -101,7 +102,7 @@ module ContigElements
 				finish_coord = [finish, finish_coord].sort.first
 
 				obj = self.class.new(contig, start_coord, finish_coord, raw_gff)
-				obj.make_defective! reason: :splitted
+				obj.make_defective! reason: :produced_by_splitting
 				obj
 			end
 		end

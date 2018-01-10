@@ -23,7 +23,6 @@ module ContigElementCollections
 
 		#TODO: what to do? we do not use it
 		def merge_by_best_blast_hit
-			to_remove = []
 			merged = []
 
 			group_by(&:best_blast_hit).each do |hit, group|

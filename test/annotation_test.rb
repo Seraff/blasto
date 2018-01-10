@@ -1,4 +1,5 @@
 require_relative 'dataset.rb'
+require_relative 'annotation_test_helper.rb'
 
 class AnnotationTest < Test::Unit::TestCase
   include AnnotationTestHelper
@@ -67,7 +68,7 @@ class AnnotationTest < Test::Unit::TestCase
     assert_false zoi.defective?
     assert_false zoi.annotate
     assert_false zoi.valid?
-    assert_equal :cannot_detect_start, zoi.validation_error
+    assert_true zoi.validation_errors.include?(:cannot_detect_start)
     assert_false zoi.defective?
   end
 
@@ -86,7 +87,7 @@ class AnnotationTest < Test::Unit::TestCase
     assert_false zoi.defective?
     assert_false zoi.annotate
     assert_false zoi.valid?
-    assert_equal :cannot_detect_stop, zoi.validation_error
+    assert_true zoi.validation_errors.include?(:cannot_detect_stop)
     assert_false zoi.defective?
   end
 
@@ -106,7 +107,8 @@ class AnnotationTest < Test::Unit::TestCase
     assert_true zoi.annotate
     assert_true zoi.valid?
     assert_true zoi.defective?
-    assert_equal :blast_hit_has_another_frame, zoi.defection_reason
+
+    assert_true zoi.defection_reasons.include?(:hit_in_another_frame)
   end
 
   ## Torn cases

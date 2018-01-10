@@ -42,7 +42,7 @@ module ContigElements
             return
           end
 
-          make_defective! reason: :blast_hit_has_another_frame
+          make_defective! reason: :hit_in_another_frame
         end
 
         result

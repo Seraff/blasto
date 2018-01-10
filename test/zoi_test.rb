@@ -26,15 +26,16 @@ class ZoiTest < Test::Unit::TestCase
     dataset.add_zoi([100, 500])
     zoi = dataset.contig.zoi.first
 
-    assert_zoi_invalid zoi, :no_hit_clusters
+    assert_zoi_invalid zoi, :no_hits
   end
 
   def test_hit_clusters_more_than_one_validation
     dataset.add_zoi([100, 500])
-    dataset.add_hit_cluster([50, 100, 1], [500, 600, 1])
+    dataset.add_hit([50, 120, 1], [450, 600, 1])
+
     zoi = dataset.contig.zoi.first
 
-    assert_zoi_invalid zoi, :hit_clusters_more_than_one
+    assert_zoi_invalid zoi, :more_than_one_hit
   end
 
   def test_sl_sorting
@@ -56,6 +57,6 @@ class ZoiTest < Test::Unit::TestCase
 
   def assert_zoi_invalid(zoi, reason)
     assert zoi.invalid?
-    assert_equal zoi.validation_error, reason.to_sym
+    assert_true zoi.validation_errors.include?(reason.to_sym)
   end
 end

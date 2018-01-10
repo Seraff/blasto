@@ -4,17 +4,14 @@ module ContigElements
   class Zoi < ContigElement
     include Polycistronic
     include Annotation
+    include Gff
 
     DIRECTIONS = ['+', '-'].freeze
     FRAMES = (1..6).to_a.freeze
     START_CODON = 'M'
     STOP_CODON = '*'
 
-    VALID_COLOR = '#009900'
-    DEFECTIVE_COLOR = '#d1b204'
-    INVALID_COLOR = '#CC070E'
-
-    attr_reader :contig, :validation_error, :defection_reason, :extra_data,
+    attr_reader :contig, :validation_errors, :defection_reasons, :extra_data,
       :gene_start, :gene_finish, :source_frame, :raw_gff
     # start - left border
     # finish - right border
@@ -29,8 +26,8 @@ module ContigElements
       @source_frame = source_frame
       @raw_gff = raw_gff
 
-      @validation_error = nil
-      @defection_reason = nil
+      @validation_errors = []
+      @defection_reasons = []
 
       @gene_start = nil
       @gene_finish = nil
@@ -45,28 +42,33 @@ module ContigElements
     end
 
     def make_invalid!(reason: nil)
+      unless BadTranscriptsLogger.correct_invalidity_reason?(reason)
+        raise "Unknown invalidity reason: #{reason}"
+      end
+
       @valid = false
-      @validation_error = reason if reason
+      @validation_errors << reason if reason
     end
 
     def make_valid!
+      @validation_errors = []
       @valid = true
     end
 
     def valid?
       if @valid.nil?
         @valid = begin
-          @validation_error = nil
+          @validation_errors = []
 
           if (finish - start + 1) < Settings.annotator.transcriptome_min_size
-            @validation_error = :short
+            @validation_errors << :short
           elsif blast_hits.count == 0
-            @validation_error = :no_hits
+            @validation_errors << :no_hits
           elsif blast_hits.count > 1
-            @validation_error = :more_than_one_hit
+            @validation_errors << :more_than_one_hit
           end
 
-          @validation_error.nil?
+          @validation_errors.empty?
         end
       end
 
@@ -83,10 +85,10 @@ module ContigElements
       if @defective.nil?
         @defective = begin
           if sls.empty?
-            @defection_reason = :has_no_sl_mappings
+            @defection_reasons << :has_no_sl_mappings
           end
 
-          !@defection_reason.nil?
+          !@defection_reasons.empty?
         end
       end
 
@@ -94,7 +96,12 @@ module ContigElements
     end
 
     def make_defective!(reason:)
-      @defection_reason = reason
+      unless BadTranscriptsLogger.correct_defection_reason?(reason)
+        raise "Unknown defection reason: #{reason}"
+      end
+
+      @defective = true
+      @defection_reasons << reason
     end
 
     def blast_hits
@@ -143,68 +150,6 @@ module ContigElements
       end
     end
 
-    def to_gff
-      color = if valid?
-        if defective?
-          DEFECTIVE_COLOR
-        else
-          VALID_COLOR
-        end
-      else
-        INVALID_COLOR
-      end
-
-
-      if annotated?
-        left, right = [gene_start, gene_finish].sort
-        f = frame
-        d = direction
-        notes = "ID=#{SecureRandom.hex}"
-        notes += "_#{@defection_reason}" if defective?
-      else
-        left, right = [start, finish].sort
-        f = raw_gff_hash[:frame]
-        d = raw_gff_hash[:direction]
-        notes = raw_gff_hash[:notes]
-      end
-
-      if invalid?
-        invalid_hash = SecureRandom.hex
-        notes.gsub!(/ID=(.+?)(?=(;|\z))/, "ID=#{invalid_hash}_(#{validation_error});")
-      end
-
-      notes += ";color=#{color}"
-
-      if valid?
-        if d == '+'
-          bbh_finish = best_blast_hit.finish
-          extended_bbh_finish = best_blast_hit.extended_finish
-        else
-          bbh_finish = best_blast_hit.start
-          extended_bbh_finish = best_blast_hit.extended_start
-        end
-
-        stop_distance = (gene_finish - bbh_finish).abs
-        extended_stop_distance = (gene_finish - extended_bbh_finish).abs
-
-        notes += ";distance_to_hit_finish=#{stop_distance}"
-        notes += ";distance_to_hit_extended_finish=#{extended_stop_distance}"
-        notes += ";bbh_evalue=#{best_blast_hit.data.data[:evalue]}"
-        notes += ";bbh_name=#{best_blast_hit.data.data[:qseqid]}"
-        notes += ";annotated=#{annotated?}"
-        notes += ";defective=#{defective?}"
-        notes += ";valid=#{valid?}"
-      end
-
-      f = [4,5,6].include?(f) ? (f - 4) : (f - 1)
-      [contig.title, :blast, :gene, left, right, '.', d, f, notes].join("\t")
-    end
-
-    def to_gff_as_is
-      left, right = [start, finish].sort
-      [contig.title, :blast, :gene, left, right, '.', '+', '1', 'yay'].join("\t")
-    end
-
     def normalize!
       @start, @finish = [@start, @finish].sort
     end
@@ -213,18 +158,7 @@ module ContigElements
       start..finish
     end
 
-    def id
-      raw_gff_hash[:notes][/ID=(.+?)(?=(;|\z))/, 1]
-    end
-
     protected
-
-    def raw_gff_hash
-      @raw_gff_hash ||= begin
-        s = raw_gff.split("\t")
-        { direction: s[6], frame: s[7].to_i, notes: s[8] }
-      end
-    end
 
     def inner_threshold
       na_len * Settings.annotator.zoi_sl_searching_inner_multiplier.to_f
