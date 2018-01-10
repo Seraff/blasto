@@ -20,12 +20,12 @@ class Annotator
   end
 
   def each_contig(prefixes: [])
-    @genome.each do |fasta_format|
+    @genome.each_with_index do |fasta_format, i|
       if prefixes.any?
         next if prefixes.select { |pr| fasta_format.entry_id.start_with?(pr) }.empty?
       end
 
-      yield Contig.new(fasta_format)
+      yield Contig.new(fasta_format), i
     end
   end
 

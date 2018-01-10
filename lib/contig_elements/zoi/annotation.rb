@@ -4,41 +4,65 @@ module ContigElements
       HIT_BORDERS_THRESHOLD = 10
 
       def annotate
+        if begin_torn?
+          @gene_start = torn_by_coord
+          make_defective! reason: :torn
+        else
+          @gene_start = detect_gene_start
+          return false unless @gene_start
+        end
+
+        if end_torn?
+          @gene_finish = torn_by_coord
+          make_defective! reason: :torn
+        else
+          @gene_finish = detect_gene_finish
+          return false unless @gene_finish
+        end
+
+        true
+      end
+
+      def detect_gene_start
         if correct_sl
           subs = subsequence_for_sl(correct_sl)
-          @gene_start = subs.get_na_coord_for_aa_in_contig_frame(START_CODON, frame)
+          result = subs.get_na_coord_for_aa_in_contig_frame(START_CODON, frame)
 
-          raise "Cannot detect start, error in program! #{self.inspect}" unless @gene_start
+          raise "Cannot detect start, error in program! #{self.inspect}" unless result
         else
           interval = forward? ?
             [self.begin, hit.begin+HIT_BORDERS_THRESHOLD] :
             [hit.begin-HIT_BORDERS_THRESHOLD, self.begin]
 
-          subs = contig.subsequence *interval.sort
-          @gene_start = subs.get_na_coord_for_aa_in_contig_frame(START_CODON, frame)
+          subs = contig.subsequence(*interval.sort)
+          result = subs.get_na_coord_for_aa_in_contig_frame(START_CODON, frame)
 
-          unless @gene_start
+          unless result
             make_invalid! reason: :cannot_detect_start
-            return false
+            return
           end
 
           make_defective! reason: :blast_hit_has_another_frame
         end
 
-        subs = contig.subsequence *[hit.end, self.end].sort
-        @gene_finish = subs.get_na_coord_for_aa_in_contig_frame(STOP_CODON, frame)
+        result
+      end
 
-        if @gene_finish
-          @gene_finish -= 1 if forward?
-          @gene_finish += 1 if reverse?
+      def detect_gene_finish
+        subs = contig.subsequence(*[hit.end, self.end].sort)
+        result = subs.get_na_coord_for_aa_in_contig_frame(STOP_CODON, frame)
+
+        if result
+          result -= 1 if forward?
+          result += 1 if reverse?
         end
 
-        unless @gene_finish
+        unless result
           make_invalid! reason: :cannot_detect_stop
           return false
         end
 
-        true
+        result
       end
 
       def correct_sl
@@ -62,7 +86,7 @@ module ContigElements
 
         return if interval[0] >= interval[1]
 
-        contig.subsequence *interval
+        contig.subsequence(*interval)
       end
 
       def hit
@@ -90,8 +114,8 @@ module ContigElements
       end
 
       def end
-      forward? ? finish : start
+        forward? ? finish : start
+      end
     end
   end
-end
 end

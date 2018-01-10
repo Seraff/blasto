@@ -37,7 +37,7 @@ module ContigElements
     end
 
     def annotated?
-      !@gene_start.nil? && !@gene_finish.nil?
+      @gene_start && @gene_finish
     end
 
     def validate!
@@ -123,6 +123,24 @@ module ContigElements
 
     def sls
       @sls ||= ContigElementCollection.new left_sls_sorted + right_sls_sorted
+    end
+
+    def begin_torn?
+      torn_by_coord = forward? ? 1 : contig.length
+      best_blast_hit.begin == torn_by_coord
+    end
+
+    def end_torn?
+      torn_by_coord = forward? ? contig.length : 1
+      best_blast_hit.end == torn_by_coord
+    end
+
+    def torn_by_coord
+      if begin_torn?
+        best_blast_hit.begin
+      elsif end_torn?
+        best_blast_hit.end
+      end
     end
 
     def to_gff
