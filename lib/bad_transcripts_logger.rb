@@ -62,35 +62,19 @@ class BadTranscriptsLogger
       end
 		end
 
-		def gather_all_clusters
-			return if BadTranscriptsLogger.test_environment?
-
-			clusters_filename = 'hit_clusters.gff'
-			full_clusters_path = Preparer.abs_path_for(clusters_filename)
-      full_clusters_path.rmtree if full_clusters_path.exist?
-
-      `touch #{full_clusters_path}`
-
-      Dir["#{Preparer.contigs_folder_path.to_s}/*"].each do |folder_name|
-        path = Preparer.contig_folder_path(folder_name, filename: clusters_filename)
-        next unless path.exist?
-
-        `cat #{path} | grep "^[^#;]" >> #{full_clusters_path}`
-      end
-		end
-
 		def print_reasons_stats
 			return if BadTranscriptsLogger.test_environment?
 
 			puts
 			path = Preparer.abs_path_for(TOTAL_STAT_FILENAME)
+			annotation_path = Preparer.abs_path_for(Contig::ANNOTATION_FILENAME)
 			path.rmtree if path.exist?
 
 			File.open(path, 'w') do |f|
 				total_count = 0
 
 				REASONS.each do |reason|
-					count = `cat #{Preparer.abs_path_for(LOG_FILENAME)} | grep #{reason} | wc -l`.to_i
+					count = `cat #{annotation_path} | grep #{reason} | wc -l`.to_i
 					total_count += count
 					f.puts "#{reason}: #{count}"
 				end

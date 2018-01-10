@@ -14,6 +14,7 @@ class ContigSubsequence
   end
 
   def aa_seq_in_frame(frame)
+    return '' if seq.size < 3
     seq.translate frame
   end
 

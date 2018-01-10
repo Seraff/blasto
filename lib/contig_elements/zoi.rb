@@ -85,10 +85,12 @@ module ContigElements
           if sls.empty?
             @defection_reason = :has_no_sl_mappings
           end
-        end
 
-        !@defection_reason.nil?
+          !@defection_reason.nil?
+        end
       end
+
+      @defective
     end
 
     def make_defective!(reason:)
@@ -171,6 +173,9 @@ module ContigElements
         notes += ";distance_to_hit_extended_finish=#{extended_stop_distance}"
         notes += ";bbh_evalue=#{best_blast_hit.data.data[:evalue]}"
         notes += ";bbh_name=#{best_blast_hit.data.data[:qseqid]}"
+        notes += ";annotated=#{annotated?}"
+        notes += ";defective=#{defective?}"
+        notes += ";valid=#{valid?}"
       end
 
       f = [4,5,6].include?(f) ? (f - 4) : (f - 1)

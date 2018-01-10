@@ -1,4 +1,3 @@
-\
 module ContigElements
   class Zoi < ContigElement
     module Annotation
@@ -13,7 +12,7 @@ module ContigElements
         else
           interval = forward? ?
             [self.begin, hit.begin+HIT_BORDERS_THRESHOLD] :
-            [hit.end-HIT_BORDERS_THRESHOLD, self.end]
+            [hit.begin-HIT_BORDERS_THRESHOLD, self.begin]
 
           subs = contig.subsequence *interval.sort
           @gene_start = subs.get_na_coord_for_aa_in_contig_frame(START_CODON, frame)
@@ -48,6 +47,7 @@ module ContigElements
 
           sls.detect do |sl|
             subs = subsequence_for_sl(sl)
+            next unless subs
             subs.get_na_coord_for_aa_in_contig_frame(START_CODON, frame)
           end
         end
@@ -58,7 +58,7 @@ module ContigElements
 
         interval = forward? ?
           [sl_center, hit.begin+HIT_BORDERS_THRESHOLD] :
-          [hit.end-HIT_BORDERS_THRESHOLD, sl_center]
+          [hit.begin-HIT_BORDERS_THRESHOLD, sl_center]
 
         return if interval[0] >= interval[1]
 

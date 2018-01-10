@@ -92,17 +92,17 @@ class AnnotationTest < Test::Unit::TestCase
 
   def test_correct_sl_absence
     data = %q{
-      TAGGTACATATGGGTACATGCATCTAATAGGATGTAGGT # genome
-      ---------[M]------------[*]------------
-      -------[-------------------]----------- # ZOI
-      -------------[----------]-------------- # hit, frame 1
-      -------------------------------------[] # SL, coverage 1
+      TAGGTACATATGGGTACATGCATCTAATAGGATGTAGGTGTAGGT # genome
+      ---------[M]------------[*]------------------
+      -------[-------------------]----------------- # ZOI
+      -------------[----------]-------------------- # hit, frame 1
+      ---------------------------------------------[] # SL, coverage 1
     }
 
     build_dataset_from_string data
 
     assert_true zoi.valid?
-    assert_false zoi.defective?
+    assert_true zoi.defective?
     assert_true zoi.annotate
     assert_true zoi.valid?
     assert_true zoi.defective?

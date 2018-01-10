@@ -46,12 +46,10 @@ module ContigElementCollections
 
 		def split_polycistronic
 			splitted_zois = []
-			zois_for_delition = []
 
 			each do |e|
 				if e.polycistronic?
 					splitted_zois += e.split_by_polycistronic_cutting_places
-
 					e.make_invalid! reason: :splitted
 				end
 			end
@@ -69,15 +67,6 @@ module ContigElementCollections
 			vals = elements.values
 			keep_if { |e| vals.include? e }
 		end
-
-	  def log_filtered
-	  	@filtered.each do |reason, group|
-	  		group.each do |e|
-	  			e.make_invalid! reason: reason
-	  			BadTranscriptsLogger.add_to_bin e
-	  		end
-	  	end
-	  end
 
 	  def log_prepared
 			return unless Preparer.contig_folder_path(@contig.title).exist?
