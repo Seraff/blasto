@@ -49,7 +49,7 @@ module ContigElements
       end
 
       def detect_gene_finish
-        subs = contig.subsequence(*[hit.end, self.end].sort)
+        subs = contig.subsequence(*[hit.end, self.end].sort) #TODO: without sorting, but hit.end - threshold, self.end + threshold
         result = subs.get_na_coord_for_aa_in_contig_frame(STOP_CODON, frame)
 
         if result

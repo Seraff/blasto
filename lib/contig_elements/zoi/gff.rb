@@ -10,13 +10,13 @@ module ContigElements
           left, right = [gene_start, gene_finish].sort
           f = frame
           d = direction
-          notes = "ID=#{SecureRandom.hex}"
         else
           left, right = [start, finish].sort
           f = raw_gff_hash[:frame]
           d = raw_gff_hash[:direction]
-          notes = raw_gff_hash[:notes]
         end
+
+        notes = "ID=#{SecureRandom.hex}"
 
         if defective?
           notes += ";defections=#{defection_reasons_as_string}"
@@ -42,8 +42,8 @@ module ContigElements
 
           notes += ";distance_to_hit_finish=#{stop_distance}"
           notes += ";distance_to_hit_extended_finish=#{extended_stop_distance}"
-          notes += ";bbh_evalue=#{best_blast_hit.data.data[:evalue]}"
-          notes += ";bbh_name=#{best_blast_hit.data.data[:qseqid]}"
+          notes += ";hit_evalue=#{best_blast_hit.data.data[:evalue]}"
+          notes += ";hit_seqid=#{best_blast_hit.data.data[:qseqid]}"
         end
 
         f = [4,5,6].include?(f) ? (f - 4) : (f - 1)
