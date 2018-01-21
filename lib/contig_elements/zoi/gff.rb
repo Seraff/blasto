@@ -7,7 +7,7 @@ module ContigElements
 
       def to_gff
         if annotated?
-          left, right = [gene_start, gene_finish].sort
+          left, right = [gene_begin, gene_end].sort
           f = frame
           d = direction
         else
@@ -28,22 +28,25 @@ module ContigElements
 
         notes += ";color=#{color}"
 
+        # hits info
         if valid?
-          if d == '+'
-            bbh_finish = best_blast_hit.finish
-            extended_bbh_finish = best_blast_hit.extended_finish
-          else
-            bbh_finish = best_blast_hit.start
-            extended_bbh_finish = best_blast_hit.extended_start
+          blast_hits.each_with_index do |hit, i|
+            notes += ";hit_#{i}_evalue=#{hit.evalue}"
+            notes += ";hit_#{i}_seqid=#{hit.seqid}"
           end
 
-          stop_distance = (gene_finish - bbh_finish).abs
-          extended_stop_distance = (gene_finish - extended_bbh_finish).abs
+          extended_bbh_finish = forward? ?
+            end_blast_hit.extended_finish :
+            end_blast_hit.extended_start
+          begin
+            stop_distance = (gene_end - end_blast_hit.end).abs
+          rescue NoMethodError
+            binding.pry
+          end
+          extended_stop_distance = (gene_end - extended_bbh_finish).abs
 
           notes += ";distance_to_hit_finish=#{stop_distance}"
           notes += ";distance_to_hit_extended_finish=#{extended_stop_distance}"
-          notes += ";hit_evalue=#{best_blast_hit.data.data[:evalue]}"
-          notes += ";hit_seqid=#{best_blast_hit.data.data[:qseqid]}"
         end
 
         f = [4,5,6].include?(f) ? (f - 4) : (f - 1)

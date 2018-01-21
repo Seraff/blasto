@@ -4,6 +4,7 @@ module ContigElementCollections
 
 		def prepare
 			normalize
+			check_validation_defection
 			split_polycistronic
 			log_prepared
 			merge_duplicates
@@ -21,36 +22,26 @@ module ContigElementCollections
 			each(&:normalize!)
 		end
 
-		#TODO: what to do? we do not use it
-		def merge_by_best_blast_hit
-			merged = []
-
-			group_by(&:best_blast_hit).each do |hit, group|
-				next if hit.nil?
-
-				if group.count > 1
-					group.each { |e| e.make_invalid! reason: :merged }
-
-					start = group.sort_by { |e| e.start }.first.start
-					finish = group.sort_by { |e| e.finish }.last.finish
-					merged << ContigElements::Zoi.new(group.first.contig,
-						                                start,
-					                                  finish,
-					                                  group.first.raw_gff)
-				end
-			end
-
-			push(*merged)
+		def check_validation_defection
+			each(&:validate)
+			each(&:check_defection)
 		end
 
 		def split_polycistronic
 			splitted_zois = []
 
 			each do |e|
+				next unless e.valid?
+
 				if e.polycistronic?
-					splitted_zois += e.split_by_polycistronic_cutting_places
+					splitted_zois += e.polycistronic_subzois
 					e.make_invalid! reason: :splitted
 				end
+			end
+
+			splitted_zois.each do |z|
+				z.make_defective! reason: :produced_by_splitting
+				z.make_defective! reason: :fused_genes if z.blast_hits.count > 1
 			end
 
 			push(*splitted_zois)

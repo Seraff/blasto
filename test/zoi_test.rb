@@ -22,20 +22,29 @@ class ZoiTest < Test::Unit::TestCase
     assert_zoi_invalid zoi, :short
   end
 
-  def test_no_hit_clusters_validation
+  def test_no_hits_validation
     dataset.add_zoi([100, 500])
     zoi = dataset.contig.zoi.first
 
     assert_zoi_invalid zoi, :no_hits
   end
 
-  def test_hit_clusters_more_than_one_validation
+  def test_fused_genes_defection
     dataset.add_zoi([100, 500])
     dataset.add_hit([50, 120, 1], [450, 600, 1])
 
     zoi = dataset.contig.zoi.first
 
-    assert_zoi_invalid zoi, :more_than_one_hit
+    assert_zoi_defective zoi, :fused_genes
+  end
+
+  def test_hits_inconsistency_exception
+    dataset.add_zoi([100, 500])
+    dataset.add_hit([50, 120, 1], [450, 600, 2])
+
+    assert_raise ContigElements::Zoi::ZoiHitsException do
+      dataset.contig.zoi.first.valid?
+    end
   end
 
   def test_sl_sorting
@@ -58,5 +67,10 @@ class ZoiTest < Test::Unit::TestCase
   def assert_zoi_invalid(zoi, reason)
     assert zoi.invalid?
     assert_true zoi.validation_errors.include?(reason.to_sym)
+  end
+
+  def assert_zoi_defective(zoi, reason)
+    assert zoi.defective?
+    assert_true zoi.defection_reasons.include?(reason.to_sym)
   end
 end

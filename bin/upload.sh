@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 FOLDER=/media/4TB1/blastocrithidia/annotation/p57
 DATE=$(date +"%B_%d")

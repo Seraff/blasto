@@ -1,110 +1,120 @@
 module ContigElements
-	class Zoi < ContigElement
-		module Polycistronic
-			def polycistronic?
-				polycistronic_cutting_places.any?
-			end
+  class Zoi < ContigElement
+    module Polycistronic
+      attr_accessor :polycistronic_subzois, :polycistronic_parent
 
-			def split_by_polycistronic_cutting_places
-				return false unless polycistronic?
+      def polycistronic?
+        polycistronic_subzois.any?
+      end
 
-				new_zois = []
-				last_coord = start
+      def produced_by_splitting?
+        !polycistronic_parent.nil?
+      end
 
-				begin
-					polycistronic_cutting_places.each do |coord|
-						new_start = last_coord == start ? start : last_coord+1
-						new_zois << get_subzoi(new_start, coord)
+      def polycistronic_subzois
+        @polycistronic_subzois ||= detect_polycistronic_subzois
+      end
 
-						last_coord = coord
-					end
+      def detect_polycistronic_subzois
+        return [] if polycistronic_cutting_places.empty?
 
-					new_zois << get_subzoi(last_coord+1, finish) if last_coord < finish
-				rescue
-					puts "POLY ERROR"
-					puts [start, finish].inspect
-					puts group_hits_by_intersections.flatten.map{|e| [e.start, e.finish]}.inspect
-					puts polycistronic_cutting_places.inspect
-					exit 0
-				end
+        new_zois = []
+        last_coord = start
 
-				new_zois
-			end
+        begin
+          polycistronic_cutting_places.each do |coord|
+            new_start = last_coord == start ? start : last_coord+1
+            new_zois << get_polycistronic_subzoi(new_start, coord)
 
-			def polycistronic_cutting_places
-				@polycistronic_cutting_places ||= begin
-					return [] if blast_hits.count <= 1
+            last_coord = coord
+          end
 
-					groups = group_hits_by_intersections
-					return [] if groups.count <= 1
+          new_zois << get_polycistronic_subzoi(last_coord+1, finish) if last_coord < finish
+        end
 
-					# ---[***]------[***]---
-					# ----------SL----------
+        new_zois
+      end
 
-					cutting_places = []
+      # cutting places - array of coordinates to cut
+      def polycistronic_cutting_places
+        @polycistronic_cutting_places ||= begin
+          return [] if blast_hits.count <= 1
 
-					groups.each_with_index do |group, i|
-						next_group = groups[i+1]
-						break if next_group.nil?
+          groups = blast_hit_groups
+          return [] if groups.count <= 1
 
-						left = group.max { |e| e.finish }.finish# - Settings.annotator.polycistronic_sl_threshold
-						right = next_group.min { |e| e.start }.start# + Settings.annotator.polycistronic_sl_threshold
+          # ---[***]------[***]---
+          # ----------SL----------
 
-						sl = sls.dup.select_intersected([left, right]).first
+          cutting_places = []
 
-						if sl
-							cutting_places << sl.start
-						else
-							cutting_places << (left+right)/2
-						end
-					end
+          groups.each_with_index do |group, i|
+            next_group = groups[i+1]
+            break if next_group.nil?
 
-					cutting_places
-				end
-			end
+            left = group.max { |e| e.finish }.finish# - Settings.annotator.polycistronic_sl_threshold
+            right = next_group.min { |e| e.start }.start# + Settings.annotator.polycistronic_sl_threshold
 
-			def group_hits_by_intersections
-			  groups = []
-			  sorted = blast_hits.dup.sort_by { |h| h.start }
+            sl = contig.sl_mappings.dup.select_intersected([left, right]).first
 
-			  current_group = []
-			  sorted.each do |e|
-			    found = false
+            if sl
+              cutting_places << sl.start
+            else
+              cutting_places << (left+right)/2
+            end
+          end
 
-			    if current_group.empty?
-			      current_group << e
-			      next
-			    end
+          cutting_places
+        end
+      end
 
-			    current_group.each do |ge|
-			      if e.intersects?(ge)
-			        current_group << e
-			        found = true
-			        break
-			      end
-			    end
+      def blast_hit_groups
+        groups = []
+        sorted = blast_hits.dup.sort_by { |h| h.start }
 
-			    unless found
-			      groups << current_group
-			      current_group = [e]
-			    end
-			  end
+        current_group = []
 
-			  groups << current_group
+        sorted.each do |e|
+          found = false
 
-			  groups
-			end
+          if current_group.empty?
+            current_group << e
+            next
+          end
 
-			def get_subzoi(start_coord, finish_coord)
-				raise "Wrong coords (#{start_coord}, #{finish_coord})" if start_coord > finish_coord
+          last_in_group = current_group.last
+          l = last_in_group.finish
+          r = e.start
 
-				start_coord = [start, start_coord].sort.last
-				finish_coord = [finish, finish_coord].sort.first
+          sls = contig.sl_mappings.dup.select_intersected([l, r])
+          sls = sls.select { |sl| sl.coverage > 2.0 }
 
-				obj = self.class.new(contig, start_coord, finish_coord, raw_gff)
-				obj.make_defective! reason: :produced_by_splitting
-				obj
-			end
-		end
-	end
+          if e.frame == last_in_group.frame && sls.empty?
+            current_group << e
+            found = true
+          end
+
+          unless found
+            groups << current_group
+            current_group = [e]
+          end
+        end
+
+        groups << current_group
+
+        groups
+      end
+
+      def get_polycistronic_subzoi(start_coord, finish_coord)
+        raise "Wrong coords (#{start_coord}, #{finish_coord})" if start_coord > finish_coord
+
+        start_coord = [start, start_coord].sort.last
+        finish_coord = [finish, finish_coord].sort.first
+
+        obj = self.class.new(contig, start_coord, finish_coord, raw_gff)
+        obj.polycistronic_parent = self
+        obj
+      end
+    end
+  end
 end

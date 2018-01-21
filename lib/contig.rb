@@ -64,7 +64,7 @@ class Contig
 
     File.open(Preparer.contig_folder_path(title, filename: ANNOTATION_FILENAME), 'w') do |f|
       zoi.each do |z|
-        z.annotate if z.valid?
+        z.annotate
         f.puts z.to_gff
       end
     end
@@ -149,6 +149,10 @@ class Contig
 
   def target
     Settings.annotator.blast_hit_target.to_sym
+  end
+
+  def opposite_target
+    target == :subject ? :query : :subject
   end
 
   def detect_orf_frame(na_start, na_stop, direction)

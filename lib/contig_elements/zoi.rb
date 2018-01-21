@@ -2,6 +2,9 @@ Dir["#{ROOT_PATH}/lib/contig_elements/zoi/*.rb"].each {|file| require file }
 
 module ContigElements
   class Zoi < ContigElement
+    class ZoiHitsException < Exception
+    end
+
     include Polycistronic
     include Annotation
     include Gff
@@ -12,11 +15,11 @@ module ContigElements
     STOP_CODON = '*'
 
     attr_reader :contig, :validation_errors, :defection_reasons, :extra_data,
-      :gene_start, :gene_finish, :source_frame, :raw_gff
+      :gene_begin, :gene_end, :source_frame, :raw_gff
     # start - left border
     # finish - right border
-    # gene_start - real start (left or right side, according to frame)
-    # gene_finish - real finish
+    # gene_begin - real begin of annotated gene (by direction)
+    # gene_end - real end of annotated gene (by direction)
 
     def initialize(contig, start, finish, raw_gff)
       @contig = contig
@@ -29,70 +32,44 @@ module ContigElements
       @validation_errors = []
       @defection_reasons = []
 
-      @gene_start = nil
-      @gene_finish = nil
+      @gene_begin = nil
+      @gene_end = nil
     end
 
     def annotated?
-      @gene_start && @gene_finish
+      @gene_begin && @gene_end
     end
 
-    def validate!
-
-    end
-
-    def make_invalid!(reason: nil)
+    def make_invalid!(reason:)
       unless BadTranscriptsLogger.correct_invalidity_reason?(reason)
         raise "Unknown invalidity reason: #{reason}"
       end
 
-      @valid = false
-      @validation_errors << reason if reason
+      reason = reason.to_sym
+      @validation_errors << reason unless @validation_errors.include?(reason)
     end
 
-    def make_valid!
-      @validation_errors = []
-      @valid = true
+    def validate
+      make_invalid! reason: :short_transcript if short?
+      make_invalid! reason: :no_hits if without_hits?
     end
 
     def valid?
-      if @valid.nil?
-        @valid = begin
-          @validation_errors = []
-
-          if (finish - start + 1) < Settings.annotator.transcriptome_min_size
-            @validation_errors << :short
-          elsif blast_hits.count == 0
-            @validation_errors << :no_hits
-          elsif blast_hits.count > 1
-            @validation_errors << :more_than_one_hit
-          end
-
-          @validation_errors.empty?
-        end
-      end
-
-      @valid
+      @validation_errors.empty?
     end
 
     def invalid?
       !valid?
     end
 
+    def check_defection
+      make_defective! reason: :has_no_sl_mappings if sls.empty?
+      make_defective! reason: :fused_genes if blast_hits.count > 1
+    end
+
     def defective?
       return false unless valid?
-
-      if @defective.nil?
-        @defective = begin
-          if sls.empty?
-            @defection_reasons << :has_no_sl_mappings
-          end
-
-          !@defection_reasons.empty?
-        end
-      end
-
-      @defective
+      @defection_reasons.any?
     end
 
     def make_defective!(reason:)
@@ -100,18 +77,79 @@ module ContigElements
         raise "Unknown defection reason: #{reason}"
       end
 
+      reason = reason.to_sym
+
       @defective = true
-      @defection_reasons << reason
+      @defection_reasons << reason unless @defection_reasons.include?(reason)
+    end
+
+    def short?
+      (finish - start + 1) < Settings.annotator.transcript_min_size
+    end
+
+    def without_hits?
+      blast_hits.count == 0
     end
 
     def blast_hits
       @blast_hits ||= begin
-        contig.blast_hits.select_intersected([start, finish])
+        indent = Settings.annotator.zoi_hit_searching_inner_threshold
+        contig.blast_hits
+              .select_intersected([start+indent, finish-indent])
+              .sort_by { |h| h.start }
       end
     end
 
-    def best_blast_hit
+    def blast_hit_begin
+      @blast_hit_begin ||= blast_hit_forward? ?
+        blast_hits.first.start :
+        blast_hits.last.finish
+    end
+
+    def blast_hit_end
+      @blast_hit_end ||= blast_hit_forward? ?
+        blast_hits.last.finish :
+        blast_hits.first.start
+    end
+
+    ## hits by coordinates
+
+    def left_blast_hit
       blast_hits.first
+    end
+
+    def right_blast_hit
+      blast_hits.last
+    end
+
+    ## hits by direction
+
+    def begin_blast_hit
+      blast_hit_forward? ? left_blast_hit : right_blast_hit
+    end
+
+    def end_blast_hit
+      blast_hit_forward? ? right_blast_hit : left_blast_hit
+    end
+
+    def blast_hit_frame
+      left_blast_hit.frame
+    end
+
+    def blast_hit_forward?
+      left_blast_hit.forward?
+    end
+
+    def blast_hit_reverse?
+      left_blast_hit.reverse?
+    end
+
+    def blast_hit_direction
+      bleft_blast_hit.direction
+    end
+
+    def merged_gene?
+      blast_hits.count > 1
     end
 
     def left_sls_sorted
@@ -133,20 +171,20 @@ module ContigElements
     end
 
     def begin_torn?
-      torn_by_coord = forward? ? 1 : contig.length
-      best_blast_hit.begin == torn_by_coord
+      torn_by_coord = blast_hit_forward? ? 1 : contig.length
+      begin_blast_hit.begin == torn_by_coord
     end
 
     def end_torn?
       torn_by_coord = forward? ? contig.length : 1
-      best_blast_hit.end == torn_by_coord
+      end_blast_hit.end == torn_by_coord
     end
 
     def torn_by_coord
       if begin_torn?
-        best_blast_hit.begin
+        begin_blast_hit.begin
       elsif end_torn?
-        best_blast_hit.end
+        end_blast_hit.end
       end
     end
 

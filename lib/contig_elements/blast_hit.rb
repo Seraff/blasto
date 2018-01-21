@@ -1,7 +1,7 @@
 module ContigElements
   class BlastHit < Basic
     def frame
-      @frame ||= hit_attr(:frame).to_i
+      @frame ||= hit_object.attr_by_target(:frame, contig.target).to_i
     end
 
     def organism
@@ -12,12 +12,20 @@ module ContigElements
       @gene ||= hit_attr(:id).split(/_|\|/)[1..-1].join
     end
 
+    def evalue
+      @organism ||= hit_object.evalue
+    end
+
+    def seqid
+      @organism ||= hit_attr(:id)
+    end
+
     def hit_object
       data
     end
 
     def hit_attr(attr_name)
-      hit_object.attr_by_target(attr_name, contig.target)
+      hit_object.attr_by_target(attr_name, contig.opposite_target)
     end
 
     def direction

@@ -3,16 +3,15 @@ class BadTranscriptsLogger
   TOTAL_STAT_FILENAME = 'stats.txt'
 
   INVALIDITY_REASONS = [
-    :short_transcript,
     :intersected,
     :merged,
     :intersected_by_siblings,
     :covered_by_siblings,
-    :more_than_one_hit,
     :cannot_detect_frame,
     :no_hits,
     :cannot_detect_start,
     :cannot_detect_stop,
+    :short_transcript,
     :short_gene,
     :splitted
   ]
@@ -21,7 +20,8 @@ class BadTranscriptsLogger
     :hit_in_another_frame,
     :has_no_sl_mappings,
     :torn,
-    :produced_by_splitting
+    :produced_by_splitting,
+    :fused_genes
   ]
 
   class << self

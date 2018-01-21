@@ -2,28 +2,35 @@ module ContigElements
   class Zoi < ContigElement
     module Annotation
       HIT_BORDERS_THRESHOLD = 10
+      HIT_END_STOP_THRESHOLD = 3
 
       def annotate
+        return false unless valid?
+
         if begin_torn?
-          @gene_start = torn_by_coord
+          @gene_begin = torn_by_coord
           make_defective! reason: :torn
         else
-          @gene_start = detect_gene_start
-          return false unless @gene_start
+          @gene_begin = detect_gene_begin
+          return false unless @gene_begin
         end
 
         if end_torn?
-          @gene_finish = torn_by_coord
+          @gene_end = torn_by_coord
           make_defective! reason: :torn
         else
-          @gene_finish = detect_gene_finish
-          return false unless @gene_finish
+          @gene_end = detect_gene_end
+          return false unless @gene_end
+        end
+
+        if (@gene_end - @gene_begin).abs < Settings.annotator.gene_min_size
+          make_invalid! reason: :short_gene
         end
 
         true
       end
 
-      def detect_gene_start
+      def detect_gene_begin
         if correct_sl
           subs = subsequence_for_sl(correct_sl)
           result = subs.get_na_coord_for_aa_in_contig_frame(START_CODON, frame)
@@ -31,8 +38,8 @@ module ContigElements
           raise "Cannot detect start, error in program! #{self.inspect}" unless result
         else
           interval = forward? ?
-            [self.begin, hit.begin+HIT_BORDERS_THRESHOLD] :
-            [hit.begin-HIT_BORDERS_THRESHOLD, self.begin]
+            [self.begin, blast_hit_begin+HIT_BORDERS_THRESHOLD] :
+            [blast_hit_begin-HIT_BORDERS_THRESHOLD, self.begin]
 
           subs = contig.subsequence(*interval.sort)
           result = subs.get_na_coord_for_aa_in_contig_frame(START_CODON, frame)
@@ -48,13 +55,22 @@ module ContigElements
         result
       end
 
-      def detect_gene_finish
-        subs = contig.subsequence(*[hit.end, self.end].sort) #TODO: without sorting, but hit.end - threshold, self.end + threshold
-        result = subs.get_na_coord_for_aa_in_contig_frame(STOP_CODON, frame)
+      def detect_gene_end
+        _hit_end = forward? ?
+          blast_hit_end - HIT_END_STOP_THRESHOLD :
+          blast_hit_end + HIT_END_STOP_THRESHOLD
+        _end = self.end
 
-        if result
-          result -= 1 if forward?
-          result += 1 if reverse?
+        result = nil
+
+        if (forward? && _hit_end < _end) || (reverse? && _hit_end > _end)
+          subs = contig.subsequence(*[_hit_end, _end].sort)
+          result = subs.get_na_coord_for_aa_in_contig_frame(STOP_CODON, frame)
+
+          if result
+            result -= 1 if forward?
+            result += 1 if reverse?
+          end
         end
 
         unless result
@@ -67,7 +83,7 @@ module ContigElements
 
       def correct_sl
         @correct_sl ||= begin
-          sls = hit.forward? ? left_sls_sorted : right_sls_sorted
+          sls = forward? ? left_sls_sorted : right_sls_sorted
 
           sls.detect do |sl|
             subs = subsequence_for_sl(sl)
@@ -81,8 +97,8 @@ module ContigElements
         sl_center = sl.center_coord_for_frame(frame)
 
         interval = forward? ?
-          [sl_center, hit.begin+HIT_BORDERS_THRESHOLD] :
-          [hit.begin-HIT_BORDERS_THRESHOLD, sl_center]
+          [sl_center, blast_hit_begin+HIT_BORDERS_THRESHOLD] :
+          [blast_hit_begin-HIT_BORDERS_THRESHOLD, sl_center]
 
         return if interval[0] >= interval[1]
 
@@ -90,7 +106,7 @@ module ContigElements
       end
 
       def hit
-        best_blast_hit
+        left_blast_hit
       end
 
       def frame
@@ -98,11 +114,11 @@ module ContigElements
       end
 
       def forward?
-        hit.forward?
+        blast_hit_forward?
       end
 
       def reverse?
-        hit.reverse?
+        blast_hit_reverse?
       end
 
       def direction
@@ -114,8 +130,8 @@ module ContigElements
       end
 
       def end
-        forward? ? finish : start
-      end
+      forward? ? finish : start
     end
   end
+end
 end

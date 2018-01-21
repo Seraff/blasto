@@ -26,7 +26,7 @@ annotator:
   polycistronic_sl_threshold: 15
 
   ## Transcriptome filtering
-  transcriptome_min_size: 100
+  transcript_min_size: 100
 
   gene_min_size: 150 # in na
 

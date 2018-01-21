@@ -37,7 +37,7 @@ class TranscriptomeCleaner
     short_hits = []
 
     @reader.hits.keep_if do |hit|
-      result = (hit.finish(target) - hit.start(target) + 1) >= Settings.annotator.transcriptome_min_size
+      result = (hit.finish(target) - hit.start(target) + 1) >= Settings.annotator.transcript_min_size
       short_hits << hit unless result
       result
     end

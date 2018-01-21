@@ -1,4 +1,13 @@
 module AnnotationTestHelper
+  def build_dataset(seq)
+    @dataset = TestDataset.new(seq)
+    @contig = @dataset.contig
+  end
+
+  def zoi
+    @zoi ||= dataset.contig.zoi.first
+  end
+
   def _detect_borders(string)
     result = []
     %w([ ]).each do |b_type|
@@ -55,15 +64,17 @@ module AnnotationTestHelper
           dataset.add_sl [data[:left], data[:right], data[:coverage]]
         end
     end
+
+    @contig = @dataset.contig
   end
 
   def assert_annotation(string, direction: '+')
     string = string.split('#')[0].strip
     left, right = _detect_borders(string)
-    gene_start = direction == '+' ? left : right
-    gene_finish = direction == '+' ? right : left
+    gene_begin = direction == '+' ? left : right
+    gene_end = direction == '+' ? right : left
 
-    assert_equal gene_start, zoi.gene_start
-    assert_equal gene_finish, zoi.gene_finish
+    assert_equal gene_begin, zoi.gene_begin
+    assert_equal gene_end, zoi.gene_end
   end
 end

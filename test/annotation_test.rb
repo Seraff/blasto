@@ -6,11 +6,13 @@ class AnnotationTest < Test::Unit::TestCase
   attr_reader :dataset, :contig
 
   def setup
-    Settings.annotator.transcriptome_min_size = 6
+    Settings.annotator.transcript_min_size = 6
+    Settings.annotator.zoi_hit_searching_inner_threshold = 3
   end
 
   def teardown
-    Settings.annotator.transcriptome_min_size = 100
+    Settings.annotator.transcript_min_size = 100
+    Settings.annotator.zoi_hit_searching_inner_threshold = 15
   end
 
   def test_forward_frame_correct_annotation
@@ -97,7 +99,7 @@ class AnnotationTest < Test::Unit::TestCase
       ---------[M]------------[*]------------------
       -------[-------------------]----------------- # ZOI
       -------------[----------]-------------------- # hit, frame 1
-      ---------------------------------------------[] # SL, coverage 1
+      -------------------------------------------[] # SL, coverage 1
     }
 
     build_dataset_from_string data
@@ -211,16 +213,5 @@ class AnnotationTest < Test::Unit::TestCase
     assert_true zoi.valid?
     assert_true zoi.defective?
     assert_annotation result, direction: '-'
-  end
-
-  protected
-
-  def build_dataset(seq)
-    @dataset = TestDataset.new(seq)
-    @contig = @dataset.contig
-  end
-
-  def zoi
-    @zoi ||= dataset.contig.zoi.first
   end
 end
