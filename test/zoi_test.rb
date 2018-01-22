@@ -18,13 +18,17 @@ class ZoiTest < Test::Unit::TestCase
   def test_sort_validation
     dataset.add_zoi([100, 150])
     zoi = dataset.contig.zoi.first
+    zoi.validate
+    zoi.check_defection
 
-    assert_zoi_invalid zoi, :short
+    assert_zoi_invalid zoi, :short_transcript
   end
 
   def test_no_hits_validation
     dataset.add_zoi([100, 500])
     zoi = dataset.contig.zoi.first
+    zoi.validate
+    zoi.check_defection
 
     assert_zoi_invalid zoi, :no_hits
   end
@@ -34,17 +38,10 @@ class ZoiTest < Test::Unit::TestCase
     dataset.add_hit([50, 120, 1], [450, 600, 1])
 
     zoi = dataset.contig.zoi.first
+    zoi.validate
+    zoi.check_defection
 
     assert_zoi_defective zoi, :fused_genes
-  end
-
-  def test_hits_inconsistency_exception
-    dataset.add_zoi([100, 500])
-    dataset.add_hit([50, 120, 1], [450, 600, 2])
-
-    assert_raise ContigElements::Zoi::ZoiHitsException do
-      dataset.contig.zoi.first.valid?
-    end
   end
 
   def test_sl_sorting

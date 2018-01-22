@@ -11,23 +11,21 @@ module ContigElements
           @gene_begin = torn_by_coord
           make_defective! reason: :torn
         else
-          @gene_begin = detect_gene_begin
-          return false unless @gene_begin
+          @gene_begin = detect_gene_begin || first_na_in_hit_frame
         end
 
         if end_torn?
           @gene_end = torn_by_coord
           make_defective! reason: :torn
         else
-          @gene_end = detect_gene_end
-          return false unless @gene_end
+          @gene_end = detect_gene_end || last_na_in_hit_frame
         end
 
-        if (@gene_end - @gene_begin).abs < Settings.annotator.gene_min_size
+        if annotated? && (@gene_end - @gene_begin).abs < Settings.annotator.gene_min_size
           make_invalid! reason: :short_gene
         end
 
-        true
+        !@gene_begin.nil? && !@gene_end.nil?
       end
 
       def detect_gene_begin
@@ -103,6 +101,12 @@ module ContigElements
         return if interval[0] >= interval[1]
 
         contig.subsequence(*interval)
+      end
+
+      def first_na_in_hit_frame
+      end
+
+      def last_na_in_hit_frame
       end
 
       def hit

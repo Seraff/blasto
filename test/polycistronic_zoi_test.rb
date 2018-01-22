@@ -54,7 +54,7 @@ class PolycistronicZoiTest < Test::Unit::TestCase
       ------[-------------------------]------ # ZOI
       --------[----]------------------------- # hit, frame 1
       --------------------[----]------------- # hit, frame 1
-      ---------------[]---------------------- # SL, coverage 1
+      ---------------[]---------------------- # SL, coverage 3
     }
 
     build_dataset_from_string(data)

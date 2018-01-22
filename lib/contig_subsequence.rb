@@ -13,11 +13,6 @@ class ContigSubsequence
     Bio::Sequence::NA.new contig.seq[(left_id-1)..(right_id-1)]
   end
 
-  def aa_seq_in_frame(frame)
-    return '' if seq.size < 3
-    seq.translate frame
-  end
-
   def get_na_coord_for_aa_in_contig_frame(aa, contig_frame)
     aa_id = aa_seq_in_contig_frame(contig_frame).index(aa)
     return unless aa_id
@@ -29,6 +24,11 @@ class ContigSubsequence
     else
       right_id-(subseq_frame-4)-aa_id*3
     end
+  end
+
+  def aa_seq_in_frame(frame)
+    return '' if seq.size < 3
+    seq.translate frame
   end
 
   def aa_seq_in_contig_frame(contig_frame)

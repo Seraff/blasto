@@ -7,11 +7,13 @@ class AnnotationTest < Test::Unit::TestCase
 
   def setup
     Settings.annotator.transcript_min_size = 6
+    Settings.annotator.gene_min_size = 3
     Settings.annotator.zoi_hit_searching_inner_threshold = 3
   end
 
   def teardown
-    Settings.annotator.transcript_min_size = 100
+    Settings.annotator.transcript_min_size = 150
+    Settings.annotator.gene_min_size = 150
     Settings.annotator.zoi_hit_searching_inner_threshold = 15
   end
 
@@ -29,6 +31,9 @@ class AnnotationTest < Test::Unit::TestCase
     }
 
     build_dataset_from_string(data)
+    zoi.validate
+    zoi.check_defection
+
     assert_true zoi.valid?
     assert_false zoi.defective?
     assert_true zoi.annotate
@@ -49,6 +54,9 @@ class AnnotationTest < Test::Unit::TestCase
     }
 
     build_dataset_from_string(data)
+    zoi.validate
+    zoi.check_defection
+
     assert_true zoi.valid?
     assert_false zoi.defective?
     assert_true zoi.annotate
@@ -65,6 +73,8 @@ class AnnotationTest < Test::Unit::TestCase
     }
 
     build_dataset_from_string data
+    zoi.validate
+    zoi.check_defection
 
     assert_true zoi.valid?
     assert_false zoi.defective?
@@ -84,6 +94,8 @@ class AnnotationTest < Test::Unit::TestCase
     }
 
     build_dataset_from_string data
+    zoi.validate
+    zoi.check_defection
 
     assert_true zoi.valid?
     assert_false zoi.defective?
@@ -103,6 +115,8 @@ class AnnotationTest < Test::Unit::TestCase
     }
 
     build_dataset_from_string data
+    zoi.validate
+    zoi.check_defection
 
     assert_true zoi.valid?
     assert_true zoi.defective?
@@ -129,6 +143,8 @@ class AnnotationTest < Test::Unit::TestCase
     }
 
     build_dataset_from_string data
+    zoi.validate
+    zoi.check_defection
 
     assert_true zoi.begin_torn?
     assert_false zoi.end_torn?
@@ -154,6 +170,8 @@ class AnnotationTest < Test::Unit::TestCase
     }
 
     build_dataset_from_string data
+    zoi.validate
+    zoi.check_defection
 
     assert_true zoi.begin_torn?
     assert_false zoi.end_torn?
@@ -179,6 +197,8 @@ class AnnotationTest < Test::Unit::TestCase
     }
 
     build_dataset_from_string data
+    zoi.validate
+    zoi.check_defection
 
     assert_false zoi.begin_torn?
     assert_true zoi.end_torn?
@@ -204,6 +224,8 @@ class AnnotationTest < Test::Unit::TestCase
     }
 
     build_dataset_from_string data
+    zoi.validate
+    zoi.check_defection
 
     assert_false zoi.begin_torn?
     assert_true zoi.end_torn?
