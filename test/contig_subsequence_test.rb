@@ -158,6 +158,58 @@ class ContigSubsequenceTest < Test::Unit::TestCase
     assert_equal 15, @subseq.get_na_coord_for_aa_in_contig_frame('X', 6)
   end
 
+  def test_coords_in_contig_frame_forward
+    seq = 'GTACAGTCGGNNNTCATAGACTAGGAGCCTGTACA'
+    build_dataset seq
+
+    # 1 frame
+    # GTA CAGTCGGNNNTCATA GACTAGGAGCCTGTACA
+    build_subseq(4, 18)
+    assert_equal [4, 18], @subseq.coords_in_contig_frame(1)
+    assert_equal [5, 16], @subseq.coords_in_contig_frame(2)
+    assert_equal [6, 17], @subseq.coords_in_contig_frame(3)
+
+    # 2 frame
+    # GTAC AGTCGGNNNTCATAG ACTAGGAGCCTGTACA
+    build_subseq(5, 19)
+    assert_equal [7, 18], @subseq.coords_in_contig_frame(1)
+    assert_equal [5, 19], @subseq.coords_in_contig_frame(2)
+    assert_equal [6, 17], @subseq.coords_in_contig_frame(3)
+
+    # 3 frame
+    # GTACA GTCGGNNNTCATAGA CTAGGAGCCTGTACA
+    build_subseq(6, 20)
+    assert_equal [7, 18], @subseq.coords_in_contig_frame(1)
+    assert_equal [8, 19], @subseq.coords_in_contig_frame(2)
+    assert_equal [6, 20], @subseq.coords_in_contig_frame(3)
+  end
+
+  def test_coords_in_contig_frame_reverse
+    seq = 'GTACAGTCGGNNNTCATAGACTA'
+    build_dataset seq
+
+    # 4 frame
+    # GTACA GTCGGNNNTCATAGA CTA
+    build_subseq(6, 20)
+    assert_equal [6, 20], @subseq.coords_in_contig_frame(4)
+    assert_equal [8, 19], @subseq.coords_in_contig_frame(5)
+    assert_equal [7, 18], @subseq.coords_in_contig_frame(6)
+
+    # 5 frame
+    # GTAC AGTCGGNNNTCATAG ACTA
+    build_subseq(5, 19)
+    assert_equal [6, 17], @subseq.coords_in_contig_frame(4)
+    assert_equal [5, 19], @subseq.coords_in_contig_frame(5)
+    assert_equal [7, 18], @subseq.coords_in_contig_frame(6)
+
+    # 6 frame
+    # GTA CAGTCGGNNNTCATA GACTA
+    build_subseq(4, 18)
+    assert_equal [6, 17], @subseq.coords_in_contig_frame(4)
+    assert_equal [5, 16], @subseq.coords_in_contig_frame(5)
+    assert_equal [4, 18], @subseq.coords_in_contig_frame(6)
+  end
+
   protected
 
   def build_dataset(seq)

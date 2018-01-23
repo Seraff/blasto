@@ -26,11 +26,6 @@ class ContigSubsequence
     end
   end
 
-  def aa_seq_in_frame(frame)
-    return '' if seq.size < 3
-    seq.translate frame
-  end
-
   def aa_seq_in_contig_frame(contig_frame)
     aa_seq_in_frame subseq_frame_by_contig_frame(contig_frame)
   end
@@ -51,6 +46,11 @@ class ContigSubsequence
     end
   end
 
+  def aa_seq_in_frame(frame)
+    return '' if seq.size < 3
+    seq.translate frame
+  end
+
   def forward_subseq_frame
     ((left_id-1)%3)+1
   end
@@ -67,6 +67,24 @@ class ContigSubsequence
     else
       raise "Wrong frame for ContigSubsequence#forward_frame?(): #{frame}"
     end
+  end
+
+  def coords_in_contig_frame(contig_frame)
+    frame_in_subs = subseq_frame_by_contig_frame(contig_frame)
+
+    if forward_frame?(contig_frame)
+      start = left_id + frame_in_subs - 1
+      finish = right_id - ((right_id - start + 1) % 3)
+    else
+      finish = right_id - (frame_in_subs - 4)
+      start = left_id + ((finish - left_id + 1)%3)
+    end
+
+    [start, finish]
+  end
+
+  def na_len
+    seq.length
   end
 
   protected

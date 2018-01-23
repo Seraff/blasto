@@ -72,16 +72,21 @@ class AnnotationTest < Test::Unit::TestCase
       ----[]--------------------------------- # SL, coverage 1
     }
 
+    result = %q{
+      ---------[-------------]--------------- # annotated gene
+    }
+
     build_dataset_from_string data
     zoi.validate
     zoi.check_defection
 
     assert_true zoi.valid?
     assert_false zoi.defective?
-    assert_false zoi.annotate
+    assert_true zoi.annotate
     assert_false zoi.valid?
-    assert_true zoi.validation_errors.include?(:cannot_detect_start)
     assert_false zoi.defective?
+    assert_true zoi.validation_errors.include?(:cannot_detect_start)
+    assert_annotation result, direction: '+'
   end
 
   def test_stop_detection_fail
@@ -93,16 +98,67 @@ class AnnotationTest < Test::Unit::TestCase
       ----[]--------------------------------- # SL, coverage 1
     }
 
+    result = %q{
+      ---------[----------------]------------ # annotated gene
+    }
+
     build_dataset_from_string data
     zoi.validate
     zoi.check_defection
 
     assert_true zoi.valid?
     assert_false zoi.defective?
-    assert_false zoi.annotate
+    assert_true zoi.annotate
+    assert_false zoi.valid?
+    assert_false zoi.defective?
+    assert_true zoi.validation_errors.include?(:cannot_detect_stop)
+    assert_annotation result, direction: '+'
+  end
+
+  def test_gene_begin_detection_fail_reverse
+    data = %q{
+      TAGGTACTTAAGGGTACATGCATCTGCTTGGATGTAGGT # genome
+      -------[*]-----------------------------
+      -----[----------------------------]---- # ZOI
+      -------------[----------------]-------- # hit, frame 6
+    }
+
+    result = %q{
+      ----------[----------------------]----- # annotated gene
+    }
+
+    build_dataset_from_string data
+    zoi.validate
+    zoi.check_defection
+
+    assert_true zoi.valid?
+    assert_true zoi.annotate
+    assert_false zoi.valid?
+    assert_true zoi.validation_errors.include?(:cannot_detect_start)
+    assert_annotation result, direction: '-'
+  end
+
+  def test_gene_end_detection_fail_reverse
+    data = %q{
+      TAGGTACATCAGGGTACATGCATCTGGGCATATGTAGGT # genome
+      ----------------------------[M]--------
+      -----[----------------------------]---- # ZOI
+      -------------[----------]-------------- # hit, frame 6
+    }
+
+    result = %q{
+      -------[----------------------]-------- # annotated gene
+    }
+
+    build_dataset_from_string data
+    zoi.validate
+    zoi.check_defection
+
+    assert_true zoi.valid?
+    assert_true zoi.annotate
     assert_false zoi.valid?
     assert_true zoi.validation_errors.include?(:cannot_detect_stop)
-    assert_false zoi.defective?
+    assert_annotation result, direction: '-'
   end
 
   def test_correct_sl_absence
@@ -111,7 +167,7 @@ class AnnotationTest < Test::Unit::TestCase
       ---------[M]------------[*]------------------
       -------[-------------------]----------------- # ZOI
       -------------[----------]-------------------- # hit, frame 1
-      -------------------------------------------[] # SL, coverage 1
+      -------------------------------------------[] # SL, coverage 3
     }
 
     build_dataset_from_string data

@@ -11,14 +11,14 @@ module ContigElements
           @gene_begin = torn_by_coord
           make_defective! reason: :torn
         else
-          @gene_begin = detect_gene_begin || first_na_in_hit_frame
+          @gene_begin = detect_gene_begin
         end
 
         if end_torn?
           @gene_end = torn_by_coord
           make_defective! reason: :torn
         else
-          @gene_end = detect_gene_end || last_na_in_hit_frame
+          @gene_end = detect_gene_end
         end
 
         if annotated? && (@gene_end - @gene_begin).abs < Settings.annotator.gene_min_size
@@ -44,7 +44,7 @@ module ContigElements
 
           unless result
             make_invalid! reason: :cannot_detect_start
-            return
+            result = borders_in_hit_frame[0]
           end
 
           make_defective! reason: :hit_in_another_frame
@@ -73,7 +73,7 @@ module ContigElements
 
         unless result
           make_invalid! reason: :cannot_detect_stop
-          return false
+          result = borders_in_hit_frame[1]
         end
 
         result
@@ -103,10 +103,12 @@ module ContigElements
         contig.subsequence(*interval)
       end
 
-      def first_na_in_hit_frame
-      end
-
-      def last_na_in_hit_frame
+      # "real" coordinates: [begin, end]
+      def borders_in_hit_frame
+        @borders_in_hit_frame ||= begin
+          coords = contig.subsequence(start, finish).coords_in_contig_frame(frame)
+          forward? ? coords : coords.reverse
+        end
       end
 
       def hit
