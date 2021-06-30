@@ -93,9 +93,11 @@ module ContigElements
 
     def blast_hits
       @blast_hits ||= begin
-        indent = Settings.annotator.zoi_hit_searching_inner_threshold
+        min_intersection_rate = Settings.annotator.zoi_hit_searching_min_intersection_rate
+
         contig.blast_hits
-              .select_intersected([start+indent, finish-indent])
+              .select_intersected([start, finish])
+              .select { |h| h.intersection_rate(self) >= min_intersection_rate }
               .sort_by { |h| h.start }
       end
     end

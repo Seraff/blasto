@@ -3,7 +3,7 @@ require_relative 'contig_element_collection'
 class Contig
   attr_reader :blast_hits, :transcripts, :sl_mappings
 
-  ANNOTATION_FILENAME = 'annotation.gff'
+  ANNOTATION_FILENAME = 'log.gff'
 
   class << self
     def gather_full_annotation_files
@@ -83,7 +83,7 @@ class Contig
   end
 
 
-  def blast_hits
+  def P
     @blast_hits ||= begin
       elements = []
       path = Preparer::hits_csv_path(title)
@@ -170,5 +170,14 @@ class Contig
 
   def subsequence(left, right)
     ContigSubsequence.new self, left, right
+  end
+
+  def mean_coverage(left, right)
+    if left >= right
+      raise "Something gone wrong: #{left} >= #{right} in #{title}"
+    end
+
+    path = SettingsHelper.instance.abs_path_for_setting :coverage
+    ReadsStatistics.new(path).average_coverage(title, left, right)
   end
 end

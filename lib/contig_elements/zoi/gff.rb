@@ -49,6 +49,14 @@ module ContigElements
           notes += ";distance_to_hit_extended_finish=#{extended_stop_distance}"
         end
 
+        status = if valid? || defective? || canot_detect_all_borders?
+          :good
+        else
+          :bad
+        end
+
+        notes += ";status=#{status}"
+
         f = [4,5,6].include?(f) ? (f - 4) : (f - 1)
         [contig.title, :blast, :gene, left, right, '.', d, f, notes].join("\t")
       end

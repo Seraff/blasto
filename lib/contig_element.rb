@@ -9,6 +9,11 @@ class ContigElement
 		IntervalsHelper.intersects? start..finish, other.start..other.finish
 	end
 
+	def intersection_rate(other)
+		size = IntervalsHelper.intersection(start..finish, other.start..other.finish).size
+		size.to_f/na_len
+	end
+
 	def seq
 		Bio::Sequence::NA.new contig.seq[(start-1)..(finish-1)]
 	end

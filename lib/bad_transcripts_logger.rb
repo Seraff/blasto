@@ -77,8 +77,6 @@ class BadTranscriptsLogger
       path.rmtree if path.exist?
 
       File.open(path, 'w') do |f|
-        total_count = 0
-
         stats = { reasons: {}, total: {} }
 
         { invalid: INVALIDITY_REASONS, defections: DEFECTION_REASONS }.each do |key, vals|

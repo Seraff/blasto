@@ -87,9 +87,11 @@ module ContigElements
           r = e.start
 
           sls = contig.sl_mappings.dup.select_intersected([l, r])
-          sls = sls.select { |sl| sl.coverage > 2.0 }
+          sl_min_coverage = Settings.annotator.sl_polycistrony_min_coverage
+          sls = sls.select { |sl| sl.coverage > sl_min_coverage }
 
-          if e.frame == last_in_group.frame && sls.empty?
+          if e.frame == last_in_group.frame && sls.empty? && decent_coverage_in_between?(last_in_group, e)
+            # fusion
             current_group << e
             found = true
           end
@@ -114,6 +116,19 @@ module ContigElements
         obj = self.class.new(contig, start_coord, finish_coord, raw_gff)
         obj.polycistronic_parent = self
         obj
+      end
+
+      def decent_coverage_in_between?(left_el, right_el)
+        sorted = [left_el, right_el].sort_by { |h| h.start }
+
+        left_cov = contig.mean_coverage(sorted[0].start, sorted[0].finish)
+        right_cov = contig.mean_coverage(sorted[1].start, sorted[1].finish)
+        middle_cov = contig.mean_coverage(sorted[0].finish, sorted[1].start)
+
+        min_gene_cov = [left_cov, right_cov].min
+        threshold = 0.5 # TODO: to settings?
+
+        middle_cov >= min_gene_cov*threshold
       end
     end
   end

@@ -7,5 +7,9 @@ module IntervalsHelper
 		def covers?(a, b)
 	    [a, b].intersection == (b.first..b.last)
 		end
+
+    def intersection(a, b)
+      [a, b].intersection
+    end
 	end
 end

@@ -8,9 +8,6 @@ class ZoiTest < Test::Unit::TestCase
     @dataset = TestDataset.new
   end
 
-  def teardown
-  end
-
   def create_zoi(sls: [])
     ContigElements::Zoi.new(DummyContig.new(sls), 100, 1000, '')
   end
@@ -35,7 +32,7 @@ class ZoiTest < Test::Unit::TestCase
 
   def test_fused_genes_defection
     dataset.add_zoi([100, 500])
-    dataset.add_hit([50, 120, 1], [450, 600, 1])
+    dataset.add_hit([50, 150, 1], [400, 600, 1])
 
     zoi = dataset.contig.zoi.first
     zoi.validate
@@ -57,6 +54,16 @@ class ZoiTest < Test::Unit::TestCase
     assert_equal sorted_sls_left[1], source_sls[0]
 
     assert_equal sorted_sls_right[0], source_sls[2]
+  end
+
+  def test_hits_searching
+    dataset.add_zoi([100, 200])
+    dataset.add_hit([50, 110, 1], [120, 130, 1], [150, 250, 1])
+    contig = dataset.contig
+    zoi = contig.zoi.first
+
+    assert_equal 2, zoi.blast_hits.count
+    assert_equal [[120, 130], [150, 250]], zoi.blast_hits.map { |h| [h.start, h.finish] }
   end
 
   protected

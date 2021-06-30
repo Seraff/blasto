@@ -58,5 +58,8 @@ class Annotator
     BadTranscriptsLogger.gather_full_log
     Contig.gather_full_annotation_files
     BadTranscriptsLogger.print_reasons_stats
+
+    # smells bad
+    `cat #{Preparer.abs_path_for('log.gff')} | grep 'status=good' > #{Preparer.abs_path_for('annotation.gff')}`
   end
 end

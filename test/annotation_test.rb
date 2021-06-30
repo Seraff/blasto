@@ -5,18 +5,6 @@ class AnnotationTest < Test::Unit::TestCase
   include AnnotationTestHelper
   attr_reader :dataset, :contig
 
-  def setup
-    Settings.annotator.transcript_min_size = 6
-    Settings.annotator.gene_min_size = 3
-    Settings.annotator.zoi_hit_searching_inner_threshold = 3
-  end
-
-  def teardown
-    Settings.annotator.transcript_min_size = 150
-    Settings.annotator.gene_min_size = 150
-    Settings.annotator.zoi_hit_searching_inner_threshold = 15
-  end
-
   def test_forward_frame_correct_annotation
     data = %q{
       TAGGTACATATGGGTACATGCATCTAATAGGATGTAGGT # genome

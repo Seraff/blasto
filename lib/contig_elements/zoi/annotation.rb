@@ -136,8 +136,12 @@ module ContigElements
       end
 
       def end
-      forward? ? finish : start
+        forward? ? finish : start
+      end
+
+      def canot_detect_all_borders?
+        (validation_errors.map(&:to_sym) & [:cannot_detect_start, :cannot_detect_stop]).any?
+      end
     end
   end
-end
 end

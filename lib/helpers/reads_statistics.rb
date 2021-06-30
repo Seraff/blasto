@@ -5,10 +5,9 @@ class ReadsStatistics
     @reads_file_name = file_name
   end
 
-  def median_coverage(contig_name, left, right)
-    result = `samtools depth -r '#{contig_name}:#{left}-#{right}' #{@reads_file_name}`
-    values = result.split("\n").map { |r| r.split(/\s+/)[-1].to_i }
-
+  def average_coverage(contig_name, left, right)
+    result = `samtools depth -a -r '#{contig_name}:#{left}-#{right}' #{@reads_file_name} | cut -f3`
+    values = result.split("\n").map(&:to_i)
     DescriptiveStatistics::Stats.new(values).median
   end
 end
