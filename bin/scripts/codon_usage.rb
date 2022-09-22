@@ -15,7 +15,7 @@ assure_params_provided params, :gff, :fasta
 
 fasta = FastaReader.new(params[:fasta]).to_h
 gff = Bio::GFF::GFF3.new(File.open(params[:gff]))
-pb = ProgressBar.create(title: 'Gethering codon usage', starting_at: 0, total: gff.records.count)
+pb = ProgressBar.create(title: 'Gathering codon usage', starting_at: 0, total: gff.records.count)
 
 total_usage = {}
 real_stops_usage = {}
