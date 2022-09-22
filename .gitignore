@@ -2,3 +2,6 @@
 /tmp/*
 /results/*
 *.yml
+
+.DS_Store
+.history
