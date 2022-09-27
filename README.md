@@ -13,7 +13,9 @@ qseqid,qlen,sseqid,slen,length,evalue,pident,bitscore,mismatch,gaps,qstart,qend,
 0,26,NODE_1096_length_1211_cov_913.715_1,403,22,1.94e-10,100.000,55.5,0,0,5,26,1,22
 10000,23,NODE_328_length_19730_cov_141.815_2,6576,23,8.45e-09,100.000,51.6,0,0,1,23,5176,5198
 ```
+
 to `.gff` file with nucleotide coordinates like this:
+
 ```
 ##gff-version 3
 NODE_1096_length_1211_cov_913.715	blast	gene	1	66	.	+	1	ID=0_6739010979747404_1
